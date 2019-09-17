@@ -1,4 +1,3 @@
-
 import { Component, OnInit, ElementRef, NgModule, NgZone, ChangeDetectorRef, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
@@ -472,12 +471,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         this.BindMachine();
         this.BindDeploymentData();
-        this.Mode = "dev";
-        this.IsLabelCreatorEnabled = true;
-        this.MachineData.LabelJSON = '{}';
-        this.MachineData.Label = {};
-        this.SelectedSchemaInDicomType = 'DICOM Study';
-        this.customschemaInDicom= { key: 'DICOM Study' };
     }
 
     BindMachine() {
@@ -493,39 +486,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         this.httpc.post("/api/machines/getmachine", payload).subscribe(
             (returnData: any) => {
-                let machine: MachineModel  = {
-                    DateUpdated: new Date(),
-                    DateUpdatedInECR: new Date(),
-                    DockerID: 'fsd',
-                    FullDockerID: 'fds',
-                    Label: {info :'something', 'schema-in': [{key: 'fdsfd', value: 'fsdfdsfds'}]},
-                    LabelJSON: 'label json',
-                    MachineID: 124,
-                    ProductID: 223,
-                    RunningBatchID: '322',
-                    SelectedValue: 'dfndjs',
-                    fulldockerid: 'fds',
-                    lastdeployed: new Date(),
-                    machineid: 123,
-                    versiontag: 'fds'
-                };
-                let product: ProductModel = {
-                    AnatomicTarget: 'fds',
-                    BodyRegion: 'fdsfds',
-                    ClinicalApplication: 'fdsfds',
-                    GroupID: 4343,
-                    Modality: 'fdsfsd',
-                    ProductDescription: 'fdsfds',
-                    ProductID: 34343,
-                    ProductMachines: null,
-                    ProductName: 'ffdsfds',
-                    ProductSummary: 'fdsfds',
-                    ProductionMachineVersions: null
-                };
-                returnData = {
-                    machine,
-                    product
-                }
                 Object.assign(this.MachineData, returnData.machine);
                 Object.assign(this.ProductData, returnData.product);
                 this.IsLabelCreatorEnabled = returnData.IsLabelCreatorEnabled;
