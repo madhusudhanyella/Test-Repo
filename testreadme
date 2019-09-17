@@ -1,1 +1,2306 @@
 
+import { Component, OnInit, ElementRef, NgModule, NgZone, ChangeDetectorRef, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA, ViewChild } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
+import { MatGridListModule } from '@angular/material/grid-list';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ActivatedRoute, Router } from '@angular/router';
+import { interval } from "rxjs/internal/observable/interval";
+import { takeWhile } from "rxjs/operators";
+import { JobQueueElement } from '../../jobqueue/jobqueue.component';
+import { ErrorSnackBarService } from '../../utils/errorSnackBar/errorSnackBar.service';
+import { MachineInfoSchema, MachineModel, ProductModel, SortedInfoProps } from '../machines.component';
+import { ShowFileChooserDialogComponent } from '../modals/showFileChooserDialog.component';
+import { ResultsViewerComponent } from '../resultsviewer/resultsviewer.component';
+import { EnvoyComponentCanDeactivate } from '../../EnvoyComponentCanDeactivate';
+import { Observable } from "rxjs";
+import { HostListener } from '@angular/core';
+import { MatTabGroup } from '@angular/material/tabs';
+import { MatFormFieldControl } from '@angular/material/form-field';
+import { FormControl } from '@angular/forms';
+//import { setTimeout } from 'timers';
+
+
+@Component({
+    selector: 'app-machines-machine',
+    templateUrl: './machine.component.html',
+    styleUrls: ['./machine.component.css'],
+    encapsulation: ViewEncapsulation.None,
+    providers: [ErrorSnackBarService]
+})
+
+
+export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
+
+    @HostListener("window:beforeunload")
+    SamplecanDeactivate(): Observable<boolean> | boolean {
+        return (!this.hasDataChanged);
+    }
+    @ViewChild('machineTabGroup', { static: false }) machineTabGroup: MatTabGroup;
+    showPushCommands: boolean = false;
+
+    MachineData: MachineModel = new MachineModel();
+    ProductData: ProductModel = new ProductModel();
+    labelInfo: any;
+    DeployedMachines: any;
+    DeployedIndex: number = -1;
+    DeployedVersionTag: string = '';
+    DeployedMachine: any;
+    authCommand: string = '';
+    buildCommand: string = '';
+    tagCommand: string = '';
+    pushCommand: string = '';
+
+    machineLabel: any;
+    infoSchema: any = MachineInfoSchema;
+    isValidLblInfo: boolean = true;
+
+    displayedColumns: string[] = ['title', 'value'];
+    machinesdisplayedColumns: string[] = ['ModelID', 'Version', 'DateDeployed'];
+
+    showUpdateProgress: number = 0;
+
+    evalItems: any = {};
+
+    selectedInputItems: any = {};
+
+    currentBatchID: string = '';
+    currentPortalID: string = '';
+    isMachineRunning: boolean = false;
+    isVersionSaving: boolean = false;
+    isVersionSaved: boolean = false;
+    isVersionTagExists: boolean = false;
+    isVersionTagValid: boolean = true;
+    canSendMessage: boolean;
+    EvalMessage: string = 'test';
+    showResults: boolean = false;
+    resultStatus: string = '';
+    defaultLabelJSON: any = {
+        "schema-in": {},
+        "schema-out": {},
+        "info": {},
+        "timeout": 30,
+        "nvidia": false
+    };
+    machineLoaded: boolean = false;
+    labelNeedsUpdate: boolean = false;
+
+    public selectedIndex: number = 0;
+
+    public VersionTagName: string = '';
+
+    public Mode: string = 'dev';
+
+
+    //Schema In Section
+    schemaInData: any;
+    schemaInErrorMsg: string = '';
+    schemaInErrorMsgs: string[] = [];
+    schemaInDict: any = [];
+    hasDataChanged: boolean = false;
+
+    //Schema Out Section
+    schemaOutData: any;
+    schemaOutErrorMsg: string = '';
+    schemaOutErrorMsgs: string[] = [];
+    schemaOutDict: any = [];
+    customschemaInDicom: any = {};
+    customSchemaInDict: any = [];
+    SelectedSchemaInType: string = "";
+    SelectedSchemaInDicomType: string = "";
+    SelectedSchemaInItems: any = [];
+
+    customschemaOutDicom: any = {};
+    customSchemaOutDict: any = [];
+    customSchemaOutFindings: any = [];
+    SelectedSchemaOutType: string = "";
+    SelectedSchemaOutFinding: string = "";
+    SelectedSchemaOutDicomType: string = "";
+    SelectedSchemaOutItems: any = [];
+
+    lblSchemaErrorMessage: string = "";
+
+
+    Step: number = 0;
+    //IsDescriptionExpanded = false;
+
+    schemaInConfig: any =
+        {
+            "DICOM Series": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false,
+                "ChildSeriesPlaceholder": "Sub key"
+            },
+            "DICOM Study": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": true,
+                "btnChildSeriesText": "Add Series",
+                "ChildSeriesPlaceholder": "Sub key"
+            },
+            "DICOM Study-4D": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": true,
+                "btnChildSeriesText": "Add Series",
+                "IsChildMultiphaseExists": true,
+                "btnChildMultiphase": "Add Multi Phase",
+                "ChildSeriesPlaceholder": "Sub key"
+            },
+            "Integer": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": true,
+                "btnChildSeriesText": "Add Sub Key",
+                "ChildSeriesPlaceholder": "Sub key",
+                "IsDefaultValExists": true,
+                "DefaultValLabel": "Default Value",
+                "IsMinValExists": true,
+                "MinValLabel": "Min Value",
+                "IsMaxValExists": true,
+                "MaxValLabel": "Max Value"
+            },
+            "Float": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": true,
+                "btnChildSeriesText": "Add Sub Key",
+                "ChildSeriesPlaceholder": "Sub key",
+                "IsDefaultValExists": true,
+                "DefaultValLabel": "Default Value",
+                "IsMinValExists": true,
+                "MinValLabel": "Min Value",
+                "IsMaxValExists": true,
+                "MaxValLabel": "Max Value"
+            },
+            "File": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false,
+                "btnChildSeriesText": "Add Sub Key",
+                "ChildSeriesPlaceholder": "Sub key"
+            },
+            "String": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": true,
+                "btnChildSeriesText": "Add Sub Key",
+                "ChildSeriesPlaceholder": "Sub key",
+                "IsMaxLengthExists": true,
+                "MaxLengthLabel": "Max Length"
+            },
+            "License": {
+                "IsInfoLabelExists": false,
+                "IsSopIDRequired": false,
+                "IsAdditionalInfoNeeded": "true",
+                "InfoLabel": "Desciption",
+                "IsRadioButtonExists": false,
+                "IsRadioButtonText1": "Single file",
+                "IsRadioButtonText2": "Single file",
+                "IsChildSeriesExists": false,
+                "btnChildSeriesText": "Add Sub Key",
+                "ChildSeriesPlaceholder": "Sub key"
+            },
+            "Polygon": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "Array of line segments on an image",
+                "SopIDText": "frame number",
+                "sopUIDKey": "SOPInstanceUID",
+                "IsSopIDRequired": true,
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "additionInfoKey": "requiredTags",
+                "radioKey": "IsMultiple",
+                "IsRadioButtonExists": false,
+                "RadioButtonText1": "Single Series",
+                "RadioButtonText2": "Multiple Series"
+            },
+            "Segmentation": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "Enumerated choices: DICOM Segmentation Object,RT Structure Set.",
+                "SopIDText": "frame number",
+                "sopUIDKey": "SOPInstanceUID",
+                "IsSopIDRequired": false,
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "additionInfoKey": "requiredTags",
+                "radioKey": "IsMultiple",
+                "IsRadioButtonExists": false,
+                "RadioButtonText1": "Single Series",
+                "RadioButtonText2": "Multiple Series"
+            },
+            "Line": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "Add Some Label Info Text",
+                "SopIDText": "frame number",
+                "sopUIDKey": "SOPInstanceUID",
+                "IsSopIDRequired": true,
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "additionInfoKey": "requiredTags",
+                "radioKey": "IsMultiple",
+                "IsRadioButtonExists": false,
+                "RadioButtonText1": "Single Series",
+                "RadioButtonText2": "Multiple Series"
+            },
+            "Point": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "Array of line segments on an image",
+                "SopIDText": "frame number",
+                "sopUIDKey": "SOPInstanceUID",
+                "IsSopIDRequired": true,
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "additionInfoKey": "requiredTags",
+                "radioKey": "IsMultiple",
+                "IsRadioButtonExists": false,
+                "RadioButtonText1": "Single Series",
+                "RadioButtonText2": "Multiple Series"
+            }
+        };
+    schemaOutConfig: any =
+        {
+            "DICOM Series": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "Add Some Label Info Text",
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description"
+            },
+            "DICOM Study": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": true,
+                "btnChildSeriesText": "Add Series",
+                "ChildSeriesPlaceholder": "Sub key"
+            },
+            "String": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false
+
+            },
+            "Pdf": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false
+            },
+            "Image": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false,
+                "IsImageTypeNeeded": true
+            },
+            "File": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false
+            },
+            "LogFile": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false
+            },
+            "FindingSummary": {
+                "IsAdditionalInfoNeeded": true,
+                "AdditionalInfoLabel": "Description",
+                "IsChildSeriesExists": false
+            },
+            "FindingCount": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "Need to know",
+                "SopIDTextRequired": false,
+                "IsSopIDRequired": false,
+                "IsAdditionalInfoNeeded": false,
+                "additionalInfoLabel": "required Tags",
+                "radio key": "isMultiple",
+                "IsRadioButtonExists": false,
+                "RadioButtonText1": "Single Value",
+                "RadioButtonText2": "Multiple Value"
+            },
+            "Finding Description": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "need to display",
+                "SopIDTextRequired": false,
+                "IsSopIDRequired": false,
+                "IsAdditionalInfoNeeded": false,
+                "additionalInfoLabel": "required Tags",
+                "radio key": "isMultiple",
+                "IsRadioButtonExists": false,
+                "RadioButtonExists": false,
+                "RadioButtonText1": "Single Value",
+                "RadioButtonText2": "Mutli Value"
+            },
+            "Severity": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "need to display",
+                "SopIDTextRequired": false,
+                "IsSopIRequired": false,
+                "IsAdditionalInfoNeeded": false,
+                "additionalInfoLabel": "required Tags",
+                "radio key": "isMultiple",
+                "RadioButtonText1": "Single Value",
+                "RadioButtonText2": "Multi Value"
+            },
+            "Probability": {
+                "IsInfoLabelExists": false,
+                "InfoLabel": "need to display",
+                "SopIDTextRequired": false,
+                "IsSopIDRequired": false,
+                "IsAdditionalInfoNeeded": false,
+                "additionalInfoLabel": "required Tags",
+                "radio key": "isMultiple",
+                "RadioButtonText1": "Single Value",
+                "RadioButtonText2": "Multi Value"
+
+            },
+            "Confidence": {
+                "IsInfoLabelExists": false,
+                "IsSopIDRequired": false,
+                "IsAdditionalInfoNeeded": false,
+                "InfoLabel": "32bit Integer is displayed as text",
+                "radiokey": "isMultiple",
+                "IsRadioButtonExists": false,
+                "RadioButtonText1": "Single Value",
+                "RadioButtonText2": "Multiple Value"
+            }
+
+        };
+
+
+    //Label Creator section changes
+
+    //Information Section
+    infoSectionFields: string[] = ['Product Name', 'Title', 'Author', 'Organization', 'Input Requirements', 'Output Details', 'Link to Instruction for Use', 'Link to Sample Data', 'Release Version', 'Algorithm Overview', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status', 'MFDS Status', 'Algorithm Model Training Date', 'data-source', 'ground-truth', 'training-algorithm', 'Performance', 'CPU Requirement', 'RAM Requirement', 'Estimated Run Time', 'Require Internet Access'];
+    infoSectionFields_copy: string[] = ['Product Name', 'Title', 'Author', 'Organization', 'Input Requirements', 'Output Details', 'Link to Instruction for Use', 'Link to Sample Data', 'Release Version', 'Algorithm Overview', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status', 'MFDS Status', 'Algorithm Model Training Date', 'data-source', 'ground-truth', 'training-algorithm', 'Performance', 'CPU Requirement', 'RAM Requirement', 'Estimated Run Time', 'Require Internet Access'];
+    infoSectionFieldsConfig: any = {
+        "Product Name": { "Type": ValueType.FreeText, "MaxLength": 128 },
+        "Release Version": { "Type": ValueType.FreeText, "MaxLength": 128 },
+        "Title": { "Type": ValueType.FreeText, "MaxLength": 128 },
+        "Author": { "Type": ValueType.FreeText, "MaxLength": 128 },
+        "Organization": { "Type": ValueType.FreeText, "MaxLength": 128 },
+        "Input Requirements": { "Type": ValueType.FreeText, "MaxLength": 1000 },
+        "Output Details": { "Type": ValueType.FreeText, "MaxLength": 1000 },
+        "Algorithm Overview": { "Type": ValueType.FreeText, "MaxLength": 1000 },
+        "CPU Requirement": { "Type": ValueType.Slider, "MinValue": 0, "MaxValue": 16, "SliderLabel": "VCPU" },
+        "RAM Requirement": { "Type": ValueType.Slider, "MinValue": 0, "MaxValue": 64, "SliderLabel": "GB" },
+        "Estimated Run Time": {
+            "Type": ValueType.Slider, "MinValue": 2, "MaxValue": 60, "SliderLabel": "min"
+        },
+        "Require Internet Access": { "Type": ValueType.BinarySelector, "IsCustomKey": false, "ShowInfoSectionOnValue": ["1"], "AdditionalInfoMaxLength": 1000, "PlaceHolder": "Please explain the requirement" },
+        "Link to Instruction for Use": { "Type": ValueType.FreeText, "MaxLength": 1000 },
+        "Link to Sample Data ": { "Type": ValueType.FreeText, "MaxLength": 1000 },
+        "FDA Status": { "Type": ValueType.Select, "IsCustomKey": false, "Options": ["510K Cleared", "510K Pending", "Research Use"], "ShowInfoSectionOnValue": ["510K Cleared", "510K Pending"], "AdditionalInfoMaxLength": 60 },
+        "CE Mark Status": { "Type": ValueType.Select, "IsCustomKey": false, "Options": ["Class I", "Class II", "Research Use"], "ShowInfoSectionOnValue": ["Class I", "Class II"], "AdditionalInfoMaxLength": 60 },
+        "Health Canada License Status": { "Type": ValueType.BinarySelector, "IsCustomKey": false, "ShowInfoSectionOnValue": ["1"], "AdditionalInfoMaxLength": 60, "PlaceHolder": "Enter Health Canada License Number" },
+        "Japan Certification Status": { "Type": ValueType.BinarySelector, "IsCustomKey": false, "PlaceHolder": "" },
+        "Algorithm Model Training Date": { "Type": ValueType.FreeText, "IsCustomKey": false, "MaxLength": 128 }
+    };
+
+    configKeys: any = ['Product Name', 'Release Version', 'Title', 'Organization', 'CPU Requirement', 'RAM Requirement', 'Estimated Run Time', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status'];
+    infoSectionData: any = [];
+    SelectedInfoKey: string = '';
+    SelectedInfoKeyValue: string = '';
+    SelectedInfoKeyValueMaxLength: number;
+    SelectedInfoValueType: ValueType = ValueType.FreeText;
+    SelectedIsBinarySelectorCustom: boolean = false;
+    SelectedInfoKeyValueOptions: string[] = [];
+    IsSelectedKeyOptionAdded: boolean = false;
+    SelectedKeyOptionText: string = '';
+    SelectedBinaryText1: string = '';
+    SelectedBinaryText2: string = '';
+    SelectedSliderMinValue: number;
+    SelectedSliderMaxValue: number;
+    SelectedMultipleInfo: any = [];
+
+    SelectedInfoFieldAdditionalText: string = ''
+    SelectedInfoFieldAdditionalTextVisibility: boolean = false;
+
+    NewInfoKey: string = '';
+    NewInfoKeyValue: string = '';
+    NewInfoKeyValueMaxLength: number;
+    IsNewKeyOptionAdded: boolean = false;
+    NewKeyOptionText: string = '';
+    NewInfoKeyValueType: ValueType = ValueType.FreeText;
+    NewInfoKeyValueOptions: string[] = [];
+    IsNewInfoKeyAdded: boolean = false;
+    infoFields: string[] = [];
+    labelInfoErrorMsg: string = '';
+    NewBinaryText1: string = '';
+    NewBinaryText2: string = '';
+    NewSliderMinValue: number;
+    NewSliderMaxValue: number;
+    NewMultipleInfo: any = [];
+
+    //Display Section
+    dicomInTypes: string[] = ['DICOM Series', 'DICOM Study'];
+    //primitivInTypes: string[] = ['Integer', 'Float', 'String', 'File', 'License'];
+    primitivInTypes: string[] = ['File', 'License'];
+
+    dicomOutTypes: string[] = ['DICOM Series', 'DICOM Study'];
+    primitivOutFileTypes: string[] = ['Image', 'Pdf', 'File', 'LogFile'];
+    primitivOutFinding: string[] = ['FindingSummary'];
+
+
+    machineInfo: any = {};
+
+    //Static Info Section
+    schemStaticInfoErrorMsg: string = '';
+
+
+    IsLabelCreatorEnabled: boolean = false;
+
+    IsLoadComplete = true;
+
+    InvalidKeyWarningText = 'key is not valid. key should be alphanumeric, underscore and dash  Ex: Dicom-study_1';
+
+    InvalidSubKeyWarningText = 'Key is not valid. key should be alphanumeric, underscore and dash  Ex: Dicom-study1';
+
+    DicomBaseSubKeyValue = 'Dicom-Series';
+
+    constructor(private eleRef: ElementRef, private httpc: HttpClient, public dialog: MatDialog,
+        private route: ActivatedRoute, public router: Router, public snackBar: MatSnackBar, private _ngZone: NgZone, private change: ChangeDetectorRef, private matList: MatGridListModule, public errorService: ErrorSnackBarService) {
+
+    }
+
+    ngOnInit() {
+        this.Mode = this.route.snapshot.queryParamMap.get("Mode");
+
+        if (this.Mode == null) this.Mode = 'dev'; //make it default dev
+
+        this.IsLoadComplete = true;
+
+        this.BindMachine();
+        this.BindDeploymentData();
+        this.Mode = "dev";
+        this.IsLabelCreatorEnabled = true;
+        this.MachineData.LabelJSON = '{}';
+        this.MachineData.Label = {};
+        this.SelectedSchemaInDicomType = 'DICOM Study';
+        this.customschemaInDicom= { key: 'DICOM Study' };
+    }
+
+    BindMachine() {
+        var payload = {};
+        this.DeployedMachine = {};
+
+        if (this.Mode == 'prod') {
+            payload = { MachineID: this.route.snapshot.queryParamMap.get("id"), MachineVersionID: this.route.snapshot.queryParamMap.get("v"), IsProduction: true };
+        }
+        else {
+            payload = { MachineID: this.route.snapshot.queryParamMap.get("id"), IsProduction: false };
+        }
+
+        this.httpc.post("/api/machines/getmachine", payload).subscribe(
+            (returnData: any) => {
+                let machine: MachineModel  = {
+                    DateUpdated: new Date(),
+                    DateUpdatedInECR: new Date(),
+                    DockerID: 'fsd',
+                    FullDockerID: 'fds',
+                    Label: {info :'something', 'schema-in': [{key: 'fdsfd', value: 'fsdfdsfds'}]},
+                    LabelJSON: 'label json',
+                    MachineID: 124,
+                    ProductID: 223,
+                    RunningBatchID: '322',
+                    SelectedValue: 'dfndjs',
+                    fulldockerid: 'fds',
+                    lastdeployed: new Date(),
+                    machineid: 123,
+                    versiontag: 'fds'
+                };
+                let product: ProductModel = {
+                    AnatomicTarget: 'fds',
+                    BodyRegion: 'fdsfds',
+                    ClinicalApplication: 'fdsfds',
+                    GroupID: 4343,
+                    Modality: 'fdsfsd',
+                    ProductDescription: 'fdsfds',
+                    ProductID: 34343,
+                    ProductMachines: null,
+                    ProductName: 'ffdsfds',
+                    ProductSummary: 'fdsfds',
+                    ProductionMachineVersions: null
+                };
+                returnData = {
+                    machine,
+                    product
+                }
+                Object.assign(this.MachineData, returnData.machine);
+                Object.assign(this.ProductData, returnData.product);
+                this.IsLabelCreatorEnabled = returnData.IsLabelCreatorEnabled;
+                if (returnData.machineVersion) Object.assign(this.DeployedMachine, returnData.machineVersion);
+
+                if (returnData.machineVersion) Object.assign(this.DeployedMachine, returnData.machineVersion);
+
+                if (this.MachineData.DateUpdatedInECR > this.MachineData.DateUpdated) {
+                    this.labelNeedsUpdate = true;
+                }
+                else
+                    this.labelNeedsUpdate = false;
+
+                if (returnData.PortalID != '')
+                    this.currentPortalID = returnData.PortalID;
+
+                if (this.Mode == 'dev' && (this.MachineData.LabelJSON == "" || this.MachineData.LabelJSON == null)) {
+                    this.MachineData.LabelJSON = JSON.stringify(this.defaultLabelJSON);
+                    this.MachineData.Label = this.defaultLabelJSON;
+                }
+
+                if (this.Mode == 'dev' && this.MachineData.LabelJSON != "") {
+                    this.MachineData.Label = JSON.parse(this.MachineData.LabelJSON);
+                    this.labelInfo = this.MachineData.Label.info;
+                    this.BindSchemaData();
+
+                    this.BindInfoData();
+
+                    //this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
+
+                    //this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
+
+                    if (this.MachineData.Label["timeout"] == "") {
+                        this.MachineData.Label["timeout"] = 30;
+                    }
+
+
+                    //loop through all input keys and init the selected items array with default values in case there are no changes
+                    Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
+                        var selectedValue = '';
+
+                        //if it's enum, set to first in array
+                        if (this.MachineData.Label['schema-in'][k].enum) {
+                            selectedValue = this.MachineData.Label['schema-in'][k].enum[0];
+                        }
+
+                        //set false for default checkboxes
+                        if (this.MachineData.Label['schema-in'][k].type == 'boolean') {
+                            selectedValue = 'false';
+                        }
+
+                        this.selectedInputItems[k] = { Name: k, SelectedValue: selectedValue };
+                    });
+                }
+                else if (this.Mode == 'prod' && this.DeployedMachine && this.DeployedMachine.LabelJSON != '') {
+                    this.DeployedVersionTag = this.DeployedMachine.versiontag
+
+                    this.MachineData.Label = JSON.parse(this.DeployedMachine.LabelJSON);
+                    this.MachineData.FullDockerID = this.DeployedMachine.fulldockerid;
+                    this.labelInfo = this.MachineData.Label.info;
+                    this.schemaInData = this.MachineData.Label["schema-in"];
+                    this.schemaOutData = this.MachineData.Label["schema-out"];
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
+
+                    //loop through all input keys and init the selected items array with default values in case there are no changes
+                    Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
+                        console.log(this.MachineData.Label['schema-in'][k]);
+                        var selectedValue = '';
+
+                        //if it's enum, set to first in array
+                        if (this.MachineData.Label['schema-in'][k].enum) {
+                            selectedValue = this.MachineData.Label['schema-in'][k].enum[0];
+                        }
+
+                        //set false for default checkboxes
+                        if (this.MachineData.Label['schema-in'][k].type == 'boolean') {
+                            selectedValue = 'false';
+                        }
+
+                        this.selectedInputItems[k] = { Name: k, SelectedValue: selectedValue };
+                    });
+                }
+
+                if (this.currentPortalID != '') {
+                    this.isMachineRunning = true;
+                    this.EvalMessage = "Machine is all ready running, checking for status from job queue";
+                    interval(5000).pipe(takeWhile(val => this.isMachineRunning == true)).subscribe(() => this.CheckStatus());
+                }
+
+                this.machineLoaded = true;
+                //if (this.Mode == 'prod') {
+                //    this.UpdateProductionMachineRepoData();
+                //}
+                if (this.labelNeedsUpdate) {
+                    this.UpdateMachineRepoData();
+                }
+            },
+            error => {
+
+            });
+    }
+
+    GetPushCommands() {
+        this.httpc.get("/api/machines/getdockerpushcommands").subscribe(
+            (returnData: any) => {
+                console.log(returnData);
+
+                console.log(atob(returnData[0].AuthorizationToken));
+
+                var decodedString = atob(returnData[0].AuthorizationToken);
+                var splitString = decodedString.split(':', 2);
+                var pushAuthUser = splitString[0];
+                var pushAuthToken = splitString[1];
+                var pushEndPoint = returnData[0].ProxyEndpoint;
+                var pushServerAddress = pushEndPoint.replace('http://', '').replace('https://', '');
+
+                this.authCommand = `docker login -u ${pushAuthUser} -p ${pushAuthToken} ${pushServerAddress}`;
+                this.buildCommand = `docker build -t ${this.MachineData.FullDockerID} .`;
+                this.tagCommand = `docker tag ${this.MachineData.FullDockerID}:latest ${pushServerAddress}/${this.MachineData.FullDockerID}`;
+                this.pushCommand = `docker push ${pushServerAddress}/${this.MachineData.FullDockerID}:latest`;
+
+                this.showPushCommands = true;
+            },
+            error => {
+
+            }
+        );
+    }
+    CopyToClipboard(message: string) {
+        let selBox = document.createElement('textarea');
+        selBox.style.position = 'fixed';
+        selBox.style.left = '0';
+        selBox.style.top = '0';
+        selBox.style.opacity = '0';
+        selBox.value = message;
+        document.body.appendChild(selBox);
+        selBox.focus();
+        selBox.select();
+        document.execCommand('copy');
+        document.body.removeChild(selBox);
+
+        this.snackBar.open("Copied to Clipboard", '', { duration: 2000, panelClass: ['snackbar-style'] });
+    }
+    UpdateMachineRepoData() {
+        this.showUpdateProgress = 1;
+
+        this.httpc.post("/api/machines/updatemachine", { machineID: this.route.snapshot.queryParamMap.get("id") }).subscribe(
+            (returnData: any) => {
+                if (returnData != null) {
+                    Object.assign(this.MachineData, returnData);
+                    this.MachineData.Label = JSON.parse(this.MachineData.LabelJSON);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
+
+                    if (this.MachineData.DateUpdatedInECR > this.MachineData.DateUpdated)
+                        this.labelNeedsUpdate = true;
+                    else
+                        this.labelNeedsUpdate = false;
+
+                    this.showUpdateProgress = 2;
+                }
+                else {
+                    this.showUpdateProgress = 3;
+                }
+            },
+            error => { });
+    }
+
+    UpdateProductionMachineRepoData() {
+        this.httpc.post("/api/machines/updatemachineversions", { machineID: this.route.snapshot.queryParamMap.get("id") }).subscribe(
+            (returnData: any) => {
+
+            },
+            error => { });
+    }
+    DeleteMachine() {
+        let snackBarRef = this.snackBar.open(`Are you sure you want to delete the machine: ${this.MachineData.DockerID}?`, 'Yes', { duration: 7000, panelClass: ['snackbar-style'] });
+        snackBarRef.onAction().subscribe(() => {
+            this.httpc.post("/api/machines/deletemachine", { machineID: this.MachineData.MachineID, productID: this.MachineData.ProductID, dockerID: this.MachineData.DockerID }).subscribe(
+                () => {
+                    this.router.navigate(['/machines/product'], { queryParams: { id: this.MachineData.ProductID } });
+                },
+                error => { });
+        });
+    }
+    SelectFiles(key: string, value: string, index: number) {
+        let dialogConfig = new MatDialogConfig();
+        dialogConfig.data = { ProductTitle: this.ProductData.ProductName, InputType: value };
+        dialogConfig.minWidth = "70vw";
+        dialogConfig.minHeight = "70vh";
+
+        let dialogRef = this.dialog.open(ShowFileChooserDialogComponent, dialogConfig);
+        dialogRef.afterClosed().subscribe(diagResult => {
+            if (diagResult && diagResult.selectedKey) {
+                console.log(diagResult.selectedKey);
+
+                this.selectedInputItems[key] = { Name: key, SelectedValue: diagResult.selectedKey };
+                console.log(this.selectedInputItems);
+            }
+        });
+    }
+    SelectEnum(key: string, value: string, index: number) {
+        this.selectedInputItems[key] = { Name: key, SelectedValue: value };
+    }
+    SelectKeyValue(key: string, value: string, index: number) {
+        this.selectedInputItems[key] = { Name: key, SelectedValue: value };
+    }
+    Evaluate() {
+        if (this.MachineData.Label == null)
+            return;
+
+        var payload;
+
+        if (this.Mode == 'prod') {
+            payload = { InputItems: this.selectedInputItems, MachineID: this.MachineData.FullDockerID + ":" + this.DeployedVersionTag, IsProduction: true };
+        }
+        else {
+            payload = { InputItems: this.selectedInputItems, MachineID: this.MachineData.FullDockerID, IsProduction: false };
+        }
+
+        this.httpc.post("/api/machines/starteval", payload).subscribe(
+            (returnData: any) => {
+                this.currentPortalID = returnData.PortalID;
+                this.isMachineRunning = true;
+                this.EvalMessage = "Starting Evaluation";
+                interval(5000).pipe(takeWhile(val => this.isMachineRunning == true)).subscribe(() => this.CheckStatus());
+            },
+            error => { this.errorService.openSnackBar("An error has occurred on the server"); });
+
+    }
+    CheckStatus() {
+        var payload = {};
+
+        payload["PortalID"] = this.currentPortalID;
+
+        if (this.Mode == 'dev')
+            payload["MachineID"] = this.MachineData.FullDockerID + ":latest";
+        else
+            payload["MachineID"] = this.MachineData.FullDockerID + ":" + this.DeployedMachine.versiontag;
+
+        this.httpc.post("/api/machines/checkevalstatus", payload).subscribe(
+            (returnData: any) => {
+                if (returnData.InferenceState.includes("Finished")) {
+                    this.isMachineRunning = false;
+                    this.showResults = true;
+                    this.resultStatus = "Finished";
+                }
+
+                if (this.currentBatchID == "") this.currentBatchID = returnData.BatchID;
+
+                this.EvalMessage = returnData.InferenceState;
+            },
+            error => { this.errorService.openSnackBar("An error has occurred on the server"); });
+    }
+    ShowResults() {
+        let jobInfo = new JobQueueElement();
+        jobInfo.BatchID = this.currentBatchID;
+        jobInfo.MachineID = this.MachineData.FullDockerID + ":latest";
+
+        let dialogConfig = new MatDialogConfig();
+        dialogConfig.data = { JobQueueInfo: jobInfo };
+        dialogConfig.minWidth = "80vw";
+        dialogConfig.minHeight = "80vh";
+
+        let dialogRef = this.dialog.open(ResultsViewerComponent, dialogConfig);
+        dialogRef.afterClosed().subscribe(diagResult => {
+            console.log(diagResult);
+        });
+    }
+
+    static SortMachineInfoProps(props: any) {
+        let sorted = new Array();
+        let propKeys = Object.getOwnPropertyNames(props);
+
+        // separate the array into values that exist in our sorted array, and those that don't:
+        let pKeysExisting = propKeys.filter((p) => {
+            return SortedInfoProps.indexOf(p) !== -1;
+        });
+        let pKeysNonExisting = propKeys.filter((p) => {
+            return SortedInfoProps.indexOf(p) === -1;
+        });
+
+        // now sort the existing:
+        SortedInfoProps.forEach((p: string) => {
+            if (pKeysExisting.indexOf(p) !== -1) {
+                let newItem = new InfoProp();
+                newItem.title = MachineInfoSchema[p] ? MachineInfoSchema[p].title : p;
+                newItem.value = props[p]
+                sorted.push(newItem);
+            }
+        });
+
+        // and add the remaining 
+        pKeysNonExisting.forEach((p: string) => {
+            let newItem = new InfoProp();
+            newItem.title = MachineInfoSchema[p] ? MachineInfoSchema[p].title : p;
+            newItem.value = props[p]
+            sorted.push(newItem);
+        });
+
+        return sorted;
+    }
+
+    getPropertyType(def: any) {
+        if (typeof def.type != 'undefined') {
+            return def.type;
+        }
+
+        if (typeof def['dicom-type'] != 'undefined') {
+            return def['dicom-type']; //dicom-image, dicom-series
+        }
+
+        if (typeof def['mime-type'] != 'undefined') {
+            return 'file';
+        }
+
+        if (typeof def['enum'] != 'undefined') {
+            return 'enum';
+        }
+
+        return 'UNKNOWN';
+    }
+    showButtonForProperty(value: any) {
+        var propertyType = this.getPropertyType(value);
+
+        if (propertyType == 'DICOM Series' || propertyType == 'DICOM Image' || propertyType == 'dicom-series' || propertyType == 'dicom-image') {
+            return true;
+        }
+    }
+
+    logmessage(message: any) {
+        console.log(message);
+    }
+
+    //Updating the Selected Index
+    updateSelectedIndex(changedIndex: number) {
+        if (this.hasDataChanged && this.machineTabGroup.selectedIndex != this.selectedIndex) {
+            if (confirm("WARNING: You have unsaved changes. Press Cancel to go back and save these changes, or OK to lose these changes.")) {
+                this.hasDataChanged = false;
+                this.CancelLabelInfo();
+                this.selectedIndex = changedIndex;
+            }
+            else {
+                this.machineTabGroup.selectedIndex = this.selectedIndex;
+            }
+        }
+        else {
+            this.selectedIndex = changedIndex;
+        }
+        if (changedIndex == 1) {
+            this.Step = 1;
+        }
+    }
+
+    BindDeploymentData() {
+
+        this.httpc.post("/api/machines/getmachineversions", { MachineID: this.route.snapshot.queryParamMap.get("id") }).subscribe(
+            (returnData: any) => {
+                this.DeployedMachines = returnData; //deployed machine list for this machine
+
+                if (this.Mode == 'prod') {
+                    var queryVersionID = this.route.snapshot.queryParamMap.get("v");
+                    for (var loop = 0; loop < this.DeployedMachines.length; loop++) {
+                        if (this.DeployedMachines[loop].versionid == queryVersionID) {
+                            this.MachineData.LabelJSON = this.DeployedMachines[loop].LabelJSON;
+                            this.MachineData.FullDockerID = this.DeployedMachines[loop].fulldockerid;
+                            this.MachineData.RunningBatchID = this.DeployedMachines[loop].RunningBatchID;
+                            break;
+                        }
+                    }
+
+                    if (this.MachineData.LabelJSON != "") {
+                        this.MachineData.Label = JSON.parse(this.MachineData.LabelJSON);
+                        this.machineLabel = [...MachineComponent.SortMachineInfoProps(this.MachineData.Label.info)];
+                        this.change.detectChanges();
+                        //loop through all input keys and init the selected items array with default values in case there are no changes
+                        Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
+                            var selectedValue = '';
+
+                            //if it's enum, set to first in array
+                            if (this.MachineData.Label['schema-in'][k].enum) {
+                                selectedValue = this.MachineData.Label['schema-in'][k].enum[0];
+                            }
+
+                            //set false for default checkboxes
+                            if (this.MachineData.Label['schema-in'][k].type == 'boolean') {
+                                selectedValue = 'false';
+                            }
+
+                            this.selectedInputItems[k] = { Name: k, SelectedValue: selectedValue };
+                        });
+                    }
+                }
+            },
+            error => { });
+    }
+
+    SaveVersion() {
+        // VersionTagName
+        this.isVersionTagExists = false;
+        this.isVersionTagValid = true;
+        this.isVersionSaved = false;
+        var regexp = /^[a-zA-Z0-9-.]+$/;
+        if (this.VersionTagName.length > 0) {
+            if (!regexp.test(this.VersionTagName) || this.VersionTagName.indexOf('..') > -1 || this.VersionTagName.indexOf('--') > -1 || this.VersionTagName.indexOf('.-') > -1 || this.VersionTagName.indexOf('-.') > -1 || this.VersionTagName.charAt(0) == " " || this.VersionTagName.charAt(0) == "." || this.VersionTagName.charAt(0) == "-" || this.VersionTagName.toLowerCase().indexOf('latest') > -1 || this.VersionTagName.toLowerCase().indexOf('version') > -1) {
+                this.isVersionTagValid = false;
+            }
+            else {
+                this.isVersionSaving = true;
+                this.httpc.post("/api/machines/deploymachine", { MachineID: this.route.snapshot.queryParamMap.get("id"), VersionTag: this.VersionTagName }).subscribe(
+                    (returnData: any) => {
+                        this.isVersionTagExists = returnData.isVersionExists;
+                        this.isVersionSaved = returnData.isVersionSaved;
+                        //Add the logic after the Version Tag is created for the machine
+                        this.BindDeploymentData();
+                        if (!this.isVersionTagExists) {
+                            this.VersionTagName = '';
+                        }
+                        this.isVersionSaving = false;
+                    },
+                    error => { this.isVersionSaving = false; });
+            }
+        }
+    }
+
+    NavigateBack() {
+        if (this.hasDataChanged) {
+            if (confirm("WARNING: You have unsaved changes. Press Cancel to go back and save these changes, or OK to lose these changes.")) {
+                this.hasDataChanged = false;
+                this.CancelLabelInfo();
+                if (this.Mode == 'prod') {
+                    this.router.navigate(['/machines']);
+                }
+                else
+                    this.router.navigate(['/machines/product'], { queryParams: { id: this.MachineData.ProductID } });
+            }
+        }
+        else {
+            if (this.Mode == 'prod') {
+                this.router.navigate(['/machines']);
+            }
+            else
+                this.router.navigate(['/machines/product'], { queryParams: { id: this.MachineData.ProductID } });
+        }
+    }
+
+    //This method is used to Cancel the Save functionality of Label Info
+    CancelLabelInfo() {
+
+        this.IsNewInfoKeyAdded = false;
+        this.NewInfoKey = "";
+        this.NewInfoKeyValue = "";
+        this.IsSelectedKeyOptionAdded = false;
+        this.SelectedKeyOptionText = '';
+        this.IsNewKeyOptionAdded = false;
+        this.NewKeyOptionText = '';
+        this.NewBinaryText1 = '';
+        this.NewBinaryText2 = '';
+        this.NewSliderMinValue = 0;
+        this.NewSliderMaxValue = 0;
+        this.NewMultipleInfo = [];
+        this.SelectedInfoValueType = ValueType.FreeText;
+        this.SelectedIsBinarySelectorCustom = false;
+        this.SelectedInfoKeyValueOptions = [];
+        this.NewInfoKeyValueType = ValueType.FreeText;
+        this.NewInfoKeyValueOptions = [];
+        this.NewInfoKeyValueMaxLength = 0;
+        this.infoSectionData = [];
+        this.SelectedInfoKey = "";
+        this.SelectedInfoKeyValue = "";
+        this.SelectedInfoKeyValueMaxLength = 0;
+        this.SelectedBinaryText1 = '';
+        this.SelectedBinaryText2 = '';
+        this.SelectedSliderMinValue = 0;
+        this.SelectedSliderMaxValue = 0;
+        this.SelectedMultipleInfo = [];
+
+        this.isValidLblInfo = true;
+        this.schemStaticInfoErrorMsg = "";
+        this.schemaInErrorMsg = "";
+        this.schemaInErrorMsgs = [];
+        this.schemaOutErrorMsg = "";
+        this.schemaOutErrorMsgs = [];
+        this.lblSchemaErrorMessage = "";
+        this.labelInfoErrorMsg = "";
+        this.infoFields = [];
+
+        this.SelectedInfoFieldAdditionalText = ''
+        this.SelectedInfoFieldAdditionalTextVisibility = false;
+
+        //Schema Dictionary section
+        this.schemaInDict = [];
+        this.hasDataChanged = false;
+
+        //Schema Out Section
+        this.schemaOutDict = [];
+
+
+        this.customschemaInDicom = {};
+        this.customSchemaInDict = [];
+        this.SelectedSchemaInType = "";
+        this.SelectedSchemaInDicomType = "";
+        this.SelectedSchemaInItems = [];
+
+        this.customschemaOutDicom = {};
+        this.customSchemaOutDict = [];
+        this.customSchemaOutFindings = [];
+        this.SelectedSchemaOutType = "";
+        this.SelectedSchemaOutFinding = "";
+        this.SelectedSchemaOutDicomType = "";
+        this.SelectedSchemaOutItems = [];
+        this.hasDataChanged = false;
+        //this.IsDescriptionExpanded = false;
+        //this.MachineData.Label.info = this.labelInfo;
+        this.BindMachine();
+    }
+
+    BindInfoData() {
+        this.machineInfo = {};
+        var infoSection = this.MachineData.Label["info"];
+        this.infoSectionFields = this.infoSectionFields_copy;
+        //this.configKeys = Object.keys(this.infoSectionFieldsConfig);
+        var configKeys2 = this.configKeys;
+        var newObject = {};
+        var infoKeys = [];
+        if (infoSection.length == undefined) {
+            infoKeys = Object.keys(infoSection);
+            for (var item in infoKeys) {
+                newObject = { "InfoKey": infoKeys[item], "InfoValue": infoSection[infoKeys[item]], "InfoValueType": ValueType.FreeText, "MaxLength": 128, "InfoValueOptions": [] };
+                this.infoSectionData.push(newObject);
+            }
+            this.machineInfo = this.MachineData.Label["info"];
+            this.MachineData.Label["info"] = this.infoSectionData;
+        }
+        else {
+            this.infoSectionData = this.MachineData.Label["info"];
+            for (let item in infoSection) {
+                infoKeys.push(this.infoSectionData[item]["InfoKey"]);
+                this.machineInfo[this.infoSectionData[item]["InfoKey"]] = this.infoSectionData[item]["InfoValue"];
+            }
+        }
+
+        var infoSectionFlds = [];
+        infoSectionFlds = Array.from(new Set(this.infoSectionFields.concat(infoKeys)));
+        this.infoSectionFields = [];
+        for (var i = 0; i < infoSectionFlds.length; i++) {
+            var key = infoSectionFlds[i];
+
+            if (infoKeys.indexOf(key) <= -1) {
+                this.infoSectionFields.push(key);
+            }
+        }
+
+        //Populate all the config keys
+        for (let entry of this.configKeys) {
+            if (this.infoSectionFields.indexOf(entry) > -1) {
+                var keyIndex = this.infoSectionFields.indexOf(entry);
+                if (this.infoSectionFieldsConfig[entry].Type == ValueType.FreeText) {
+                    this.infoSectionData.push({ "InfoKey": entry, "InfoValue": "", "InfoValueType": this.infoSectionFieldsConfig[entry].Type, "IsCustomKey": false, "MaxLength": this.infoSectionFieldsConfig[entry].MaxLength })
+                }
+                else if (this.infoSectionFieldsConfig[entry].Type == ValueType.BinarySelector) {
+                    this.infoSectionData.push({ "InfoKey": entry, "InfoValue": "0", "InfoValueType": this.infoSectionFieldsConfig[entry].Type, "IsCustomKey": false, "AdditionalInfoText": "", "PlaceHolder": this.infoSectionFieldsConfig[entry].PlaceHolder })
+                }
+                else if (this.infoSectionFieldsConfig[entry].Type == ValueType.Slider) {
+                    this.infoSectionData.push({ "InfoKey": entry, "InfoValue": "0", "IsCustomKey": false, "SliderMin": this.infoSectionFieldsConfig[entry].MinValue, "SliderMax": this.infoSectionFieldsConfig[entry].MaxValue, "InfoValueType": this.infoSectionFieldsConfig[entry].Type });
+                    //delete this.infoSectionFields[entry]
+                }
+                else if (this.infoSectionFieldsConfig[entry].Type == ValueType.Select) {
+                    this.infoSectionData.push({ "InfoKey": entry, "InfoValue": "", "InfoValueType": this.infoSectionFieldsConfig[entry].Type, "IsCustomKey": false, "AdditionalInfoText": "" })
+                }
+
+            }
+        }
+
+        this.infoSectionFields = this.infoSectionFields.filter(function (el) {
+            return configKeys2.indexOf(el) < 0;
+        })
+    }
+
+    formatLabel(value: number | null) {
+        if (!value) {
+            return 0;
+        }
+        return value;
+    }
+
+    SetDeleteIconVisibility(key) {
+        if (this.configKeys.indexOf(key) <= -1) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+
+    AddDynamicInfoKeys(type: number) {
+        if (type == 1) {
+            this.SelectedMultipleInfo.push({
+                key: "",
+                value: ""
+            });
+        }
+        else {
+            this.NewMultipleInfo.push({
+                key: "",
+                value: ""
+            });
+        }
+    }
+
+
+    // Set Visiblity
+    SetAdditionalInfoVisibility(recipient) {
+        if (recipient['InfoKey'] in this.infoSectionFieldsConfig && 'ShowInfoSectionOnValue' in this.infoSectionFieldsConfig[recipient['InfoKey']]) {
+            if (this.infoSectionFieldsConfig[recipient['InfoKey']]['ShowInfoSectionOnValue'].indexOf(recipient['InfoValue']) > -1) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+
+    //Resetting the Additional info text
+    ResetAdditionalInfoTextBox(recipient) {
+        recipient['AdditionalInfoText'] = "";
+    }
+
+    //This function is used to set the Additional info fiValidateLabelInfoeld visisble
+    GetAdditionalInfoField(value) {
+        if (this.infoSectionFieldsConfig[this.SelectedInfoKey]['ShowInfoSectionOnValue'] != 'undefined' && this.infoSectionFieldsConfig[this.SelectedInfoKey]["ShowInfoSectionOnValue"].indexOf(value) > -1) {
+            this.SelectedInfoFieldAdditionalTextVisibility = true;
+        }
+        else {
+            this.SelectedInfoFieldAdditionalTextVisibility = false;
+        }
+    }
+    //Information Section
+    SelectInfoKey() {
+        this.SelectedInfoFieldAdditionalText = ''
+        this.SelectedInfoFieldAdditionalTextVisibility = false;
+        var valueType = 1;
+        if (this.SelectedInfoKey in this.infoSectionFieldsConfig) {
+            valueType = this.infoSectionFieldsConfig[this.SelectedInfoKey]["Type"];
+        }
+        this.SelectedInfoKeyValue = '';
+        this.SelectedInfoValueType = valueType;
+        if (this.SelectedInfoValueType == ValueType.FreeText) {
+            var len = 1000;
+            if (this.SelectedInfoKey in this.infoSectionFieldsConfig) {
+                len = this.infoSectionFieldsConfig[this.SelectedInfoKey]["MaxLength"];
+            }
+            this.SelectedInfoKeyValueMaxLength = len;
+        }
+
+        if (this.SelectedInfoValueType == ValueType.Slider) {
+            var minValue = 0;
+            var maxValue = 1000;
+
+            if (this.SelectedInfoKey in this.infoSectionFieldsConfig) {
+                minValue = this.infoSectionFieldsConfig[this.SelectedInfoKey]["MinValue"];
+                maxValue = this.infoSectionFieldsConfig[this.SelectedInfoKey]["MaxValue"];
+            }
+            this.SelectedSliderMaxValue = maxValue;
+            this.SelectedSliderMinValue = minValue;
+            if (this.SelectedInfoKey == "Estimated Run Time") {
+                this.SelectedInfoKeyValue = "15";
+            }
+
+        }
+
+        if (this.SelectedInfoValueType == ValueType.Select) {
+            this.SelectedInfoKeyValueOptions = this.infoSectionFieldsConfig[this.SelectedInfoKey]["Options"];
+        }
+
+        if (this.SelectedInfoValueType == ValueType.BinarySelector) {
+            this.SelectedInfoKeyValue = "0";
+        }
+    }
+
+    //This method is used to save the JSON data
+    SaveJsonData(section) {
+        this.labelInfoErrorMsg = "";
+        this.schemStaticInfoErrorMsg = "";
+        this.schemaInErrorMsg = "";
+        this.schemaInErrorMsgs = [];
+        this.schemaOutErrorMsg = "";
+        this.schemaOutErrorMsgs = [];
+        this.lblSchemaErrorMessage = "";
+        if (section == 1) {
+            this.ValidateLabelSchema();
+        }
+        else if (section == 2) {
+            this.ValidateStaticFieldInfo();
+        }
+        else if (section == 3) {
+            this.ValidateLabelInfo();
+        }
+
+        if (this.labelInfoErrorMsg == "" && this.schemStaticInfoErrorMsg == "" && this.schemaInErrorMsg == "" && this.schemaInErrorMsgs.length === 0 && this.schemaOutErrorMsg == "" && this.schemaOutErrorMsgs.length === 0 && this.lblSchemaErrorMessage == "") {
+            this.httpc.post("/api/machines/SaveLabelInfo", { MachineID: this.route.snapshot.queryParamMap.get("id"), Label: this.MachineData.Label }).subscribe(
+                (returnData: any) => {
+                    this.CancelLabelInfo();
+                },
+                error => { });
+            if (this.Step != 3) {
+                this.Step = this.Step + 1;
+            }
+            //this.IsDescriptionExpanded = true;
+        }
+    }
+
+
+    //This method is used to validate the label info
+    ValidateLabelInfo() {
+        var infoText = this.SelectedInfoKeyValue;
+        this.labelInfoErrorMsg = "";
+        var infoNames = [];
+        var newInfoObject = {};
+        var selectedInfoObject = {};
+        for (let item in this.infoSectionData) {
+            infoNames.push(this.infoSectionData[item]["InfoKey"]);
+        }
+
+        for (let item in this.infoSectionData) {
+            if (this.infoSectionData[item]["InfoValue"] == "" && this.infoSectionData[item]["InfoValueType"] != ValueType.Slider) {
+                this.labelInfoErrorMsg = "Error: Please provide info key value";
+                return;
+            }
+            //Handling the validation of Additional Info text
+            if ((this.infoSectionData[item]["InfoValueType"] == ValueType.BinarySelector || this.infoSectionData[item]["InfoValueType"] == ValueType.Select) && this.infoSectionData[item]["IsCustomKey"] == false) {
+                if (this.infoSectionFieldsConfig[this.infoSectionData[item]["InfoKey"]]["ShowInfoSectionOnValue"] != undefined && this.infoSectionFieldsConfig[this.infoSectionData[item]["InfoKey"]]["ShowInfoSectionOnValue"].indexOf(this.infoSectionData[item]["InfoValue"]) > -1 && this.infoSectionData[item]["AdditionalInfoText"] == "") {
+                    this.labelInfoErrorMsg = "Error:Please provide the additional info";
+                    return;
+                }
+            }
+
+            if (this.infoSectionData[item]["InfoValueType"] == ValueType.MinMaxSlider) {
+                if (this.infoSectionData[item]["SliderMin"] >= this.infoSectionData[item]["SliderMax"]) {
+                    this.labelInfoErrorMsg = "Slider Min Value should be less than Max Value";
+                    return;
+                }
+            }
+        }
+
+
+        if (this.IsNewInfoKeyAdded) {
+            if ((this.NewInfoKey == "") || (this.NewInfoKeyValue == "" && this.NewInfoKeyValueType != ValueType.BinarySelector && this.NewInfoKeyValueType != ValueType.MinMaxSlider && this.NewInfoKeyValueType != ValueType.Select && this.NewInfoKeyValueType != ValueType.MultiSelect)) {
+                this.labelInfoErrorMsg = "Error: Please provide info key";
+                return;
+            }
+
+            else if (infoNames.indexOf(this.NewInfoKey) > -1) {
+                this.labelInfoErrorMsg = "Error: Info key already exists in the JSON";
+                return;
+            }
+            else if (this.infoSectionFields.indexOf(this.NewInfoKey) > -1) {
+                this.labelInfoErrorMsg = "Error: Info key already exists in the JSON";
+                return;
+            }
+            else {
+                if (this.NewInfoKeyValueType == ValueType.FreeText) {
+                    newInfoObject = {
+                        "InfoKey": this.NewInfoKey, "InfoValue": this.NewInfoKeyValue, "InfoValueType": this.NewInfoKeyValueType, "MaxLength": this.NewInfoKeyValueMaxLength
+                    };
+                }
+                else if (this.NewInfoKeyValueType == ValueType.BinarySelector) {
+                    newInfoObject = { "InfoKey": this.NewInfoKey, "InfoValue": "Value 1: " + this.NewBinaryText1 + ";Value 2: " + this.NewBinaryText2, "InfoValueType": this.NewInfoKeyValueType, "BinarySelectorValue1": this.NewBinaryText1, "BinarySelectorValue2": this.NewBinaryText2, "IsCustomKey": true };
+                }
+                else if (this.NewInfoKeyValueType == ValueType.MinMaxSlider) {
+                    if (this.NewSliderMinValue >= this.NewSliderMaxValue) {
+                        this.labelInfoErrorMsg = "Slider Min Value should be less than Max Value";
+                        return;
+                    }
+                    newInfoObject = { "InfoKey": this.NewInfoKey, "InfoValue": "Min:" + this.NewSliderMinValue + " ; Max:" + this.NewSliderMaxValue, "InfoValueType": this.NewInfoKeyValueType, "SliderMin": this.NewSliderMinValue, "SliderMax": this.NewSliderMaxValue };
+                }
+                else if (this.NewInfoKeyValueType == ValueType.MultiSelect || this.NewInfoKeyValueType == ValueType.Select) {
+                    var infoValue = "";
+                    for (let i = 0; i < this.NewMultipleInfo.length; i++) {
+                        if (this.NewMultipleInfo[i].key == "" || this.NewMultipleInfo[i].value == "") {
+                            this.labelInfoErrorMsg = "Please provide valid schema info";
+                            return;
+                        }
+                        else {
+                            infoValue = infoValue + "Name: " + this.NewMultipleInfo[i].key + "Value: " + this.NewMultipleInfo[i].value + ";";
+                        }
+                    }
+                    newInfoObject = { "InfoKey": this.NewInfoKey, "InfoValue": infoValue, "InfoValueType": this.NewInfoKeyValueType, "InfoValueOptions": this.NewMultipleInfo };
+                }
+                else {
+                    newInfoObject = { "InfoKey": this.NewInfoKey, "InfoValue": this.NewInfoKeyValue, "InfoValueType": this.NewInfoKeyValueType, "InfoValueOptions": this.NewInfoKeyValueOptions };
+                }
+
+                this.infoSectionData.push(newInfoObject);
+            }
+        }
+
+
+        if (this.SelectedInfoKey != "" && infoText == "" && this.SelectedInfoValueType != ValueType.Slider && this.SelectedInfoValueType != ValueType.BinarySelector && this.SelectedInfoValueType != ValueType.MinMaxSlider && this.SelectedInfoValueType != ValueType.Select && this.SelectedInfoValueType != ValueType.MultiSelect) {
+            this.labelInfoErrorMsg = "Error: Please provide info key value";
+        }
+        else if (this.SelectedInfoKey != "") {
+
+            if (this.SelectedInfoValueType == ValueType.FreeText) {
+                selectedInfoObject = {
+                    "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "MaxLength": this.SelectedInfoKeyValueMaxLength
+                };
+            }
+            else if (this.SelectedInfoValueType == ValueType.Slider) {
+                selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "SliderMin": this.SelectedSliderMinValue, "SliderMax": this.SelectedSliderMaxValue, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType };
+            }
+            else if (this.SelectedInfoValueType == ValueType.BinarySelector) {
+                if (this.SelectedInfoFieldAdditionalTextVisibility == true) {
+                    if (this.SelectedInfoFieldAdditionalText == "") {
+                        this.labelInfoErrorMsg = "Error: Please provide additional info";
+                        return;
+                    }
+                    else {
+                        selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "AdditionalInfoText": this.SelectedInfoFieldAdditionalText };
+                    }
+                }
+                else {
+                    selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType };
+                }
+                //selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "IsCustomKey": false };
+            }
+            else if (this.SelectedInfoValueType == ValueType.MinMaxSlider) {
+                selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "InfoValue": "Min:" + this.SelectedSliderMinValue + " ; Max:" + this.SelectedSliderMaxValue, "InfoValueType": this.SelectedInfoValueType, "SliderMin": this.SelectedSliderMinValue, "SliderMax": this.SelectedSliderMaxValue };
+            }
+            else if (this.SelectedInfoValueType == ValueType.Select || this.SelectedInfoValueType == ValueType.MultiSelect) {
+                if (this.SelectedInfoFieldAdditionalTextVisibility == true) {
+                    if (this.SelectedInfoFieldAdditionalText == "") {
+                        this.labelInfoErrorMsg = "Error: Please provide additional info";
+                        return;
+                    }
+                    else {
+                        selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "AdditionalInfoText": this.SelectedInfoFieldAdditionalText };
+                    }
+                }
+                else {
+                    selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType };
+                }
+            }
+            else {
+                selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "InfoValueOptions": this.SelectedInfoKeyValueOptions };
+            }
+            this.infoSectionData.push(selectedInfoObject);
+        }
+
+
+        if (this.infoSectionData[0] != null) {
+            this.MachineData.Label["info"] = this.infoSectionData;
+        }
+
+    }
+
+    SaveOption() {
+
+        if (this.SelectedKeyOptionText == "") {
+            this.labelInfoErrorMsg = "Error: Please provide option value";
+            return;
+        }
+        this.SelectedInfoKeyValueOptions.push(this.SelectedKeyOptionText);
+        this.IsSelectedKeyOptionAdded = false;
+        this.SelectedKeyOptionText = '';
+    }
+
+    SaveNewKeyOption() {
+
+        if (this.NewKeyOptionText == "") {
+            this.labelInfoErrorMsg = "Error: Please provide option value";
+            return;
+        }
+        this.NewInfoKeyValueOptions.push(this.NewKeyOptionText);
+        this.IsNewKeyOptionAdded = false;
+        this.NewKeyOptionText = '';
+    }
+
+
+    //Static Info Section
+    ValidateStaticFieldInfo() {
+        this.schemStaticInfoErrorMsg = "";
+        if (this.MachineData.Label.timeout == "") {
+            this.schemStaticInfoErrorMsg = "Please provide timeout";
+            return;
+        }
+
+        if (parseInt(this.MachineData.Label.timeout) < 5 || parseInt(this.MachineData.Label.timeout) > 60) {
+            this.schemStaticInfoErrorMsg = "Timeout should be between 5 and 60 minutes";
+        }
+    }
+
+
+    //This method is used to validate the schema section
+    ValidateLabelSchema() {
+        this.schemaInErrorMsg = "";
+        this.schemaInErrorMsgs = [];
+        this.schemaOutErrorMsg = "";
+        this.schemaOutErrorMsgs = [];
+        this.ValidateAndSaveDynamicSchemaKey();
+    }
+    SelectDicomType(schemaType) {
+
+        if (schemaType == 'I') {
+            if (this.schemaInConfig[this.SelectedSchemaInDicomType]['IsChildSeriesExists'] == true) {
+                if (this.schemaInConfig[this.SelectedSchemaInDicomType]['IsChildMultiphaseExists'] == true) {
+                    this.customschemaInDicom = {
+                        key: this.SelectedSchemaInDicomType,
+                        value: this.SelectedSchemaInDicomType.replace(/ /g, '') + "1",
+                        ChildSeries: [],
+                        ChildMultiphaseSeries: []
+                    };
+                }
+                else {
+                    this.customschemaInDicom = {
+                        key: this.SelectedSchemaInDicomType,
+                        value: this.SelectedSchemaInDicomType.replace(/ /g, '') + "1",
+                        ChildSeries: []
+                    };
+                }
+            }
+            else {
+                this.customschemaInDicom = {
+                    key: this.SelectedSchemaInDicomType,
+                    value: this.SelectedSchemaInDicomType.replace(/ /g, '') + "1"
+                };
+            }
+        }
+        else if (schemaType == 'O') {
+            if (this.schemaOutConfig[this.SelectedSchemaOutDicomType]['IsChildSeriesExists'] == true) {
+                this.customschemaOutDicom = {
+                    key: this.SelectedSchemaOutDicomType,
+                    value: this.SelectedSchemaOutDicomType.replace(/ /g, '') + "1",
+                    ChildSeries: []
+                };
+            }
+            else {
+                this.customschemaOutDicom = {
+                    key: this.SelectedSchemaOutDicomType,
+                    value: this.SelectedSchemaOutDicomType.replace(/ /g, '') + "1"
+                };
+            }
+        }
+
+    }
+
+
+    //This method is used to delete the dynamic key
+    DeleteDynamicSchemaKey(schemaType, index, key, componentType) {
+        this.hasDataChanged = true;
+        if (schemaType == 'schema-in') {
+            this.customSchemaInDict.splice(index, 1);
+            var ind = this.SelectedSchemaInItems.indexOf(key);
+            this.SelectedSchemaInItems.splice(ind, 1);
+            this.SelectedSchemaInType = "";
+        }
+        if (schemaType == 'schema-out') {
+            if (componentType == 'SOF') {
+                this.customSchemaOutFindings.splice(index, 1);
+            }
+            else {
+                this.customSchemaOutDict.splice(index, 1);
+            }
+        }
+    }
+
+
+    SelectSchemaType(schemaType, componentType) {
+        this.hasDataChanged = true;
+        if (schemaType == 'schema-in') {
+            if (this.SelectedSchemaInType != "") {
+                if (this.SelectedSchemaInType.indexOf('DICOM') > -1) {
+                    if (this.SelectedSchemaInItems.indexOf('DICOM Series') > -1 || this.SelectedSchemaInItems.indexOf('DICOM Study') > -1 || this.SelectedSchemaInItems.indexOf('DICOM Study-4D') > -1) {
+                        this.SelectedSchemaInType = "";
+                        //this.primDropDown.setValue("");
+                        return;
+                    }
+                }
+
+                if (this.schemaInConfig[this.SelectedSchemaInType]['IsChildSeriesExists'] == true) {
+                    if (this.schemaInConfig[this.SelectedSchemaInType]['IsChildMultiphaseExists'] == true) {
+                        this.customSchemaInDict.push({
+                            key: this.SelectedSchemaInType,
+                            value: this.SelectedSchemaInType + (this.customSchemaInDict.filter(c => c.key === this.SelectedSchemaInType).length + 1),
+                            ChildSeries: [],
+                            ChildMultiphaseSeries: []
+                        });
+                    }
+                    else {
+                        this.customSchemaInDict.push({
+                            key: this.SelectedSchemaInType,
+                            value: this.SelectedSchemaInType + (this.customSchemaInDict.filter(c => c.key === this.SelectedSchemaInType).length + 1),
+                            ChildSeries: []
+                        });
+                    }
+                    if (this.SelectedSchemaInType != "File" && this.SelectedSchemaInType != "Integer" && this.SelectedSchemaInType != "String" && this.SelectedSchemaInType != "Float") {
+                        this.SelectedSchemaInItems.push(this.SelectedSchemaInType);
+                    }
+                }
+                else {
+                    this.customSchemaInDict.push({
+                        key: this.SelectedSchemaInType,
+                        value: this.SelectedSchemaInType + (this.customSchemaInDict.filter(c => c.key === this.SelectedSchemaInType).length + 1)
+                    });
+                    if (this.SelectedSchemaInType != "File" && this.SelectedSchemaInType != "Integer" && this.SelectedSchemaInType != "String" && this.SelectedSchemaInType != "Float") {
+                        this.SelectedSchemaInItems.push(this.SelectedSchemaInType);
+                    }
+
+                }
+
+                setTimeout(() => {
+                    this.SelectedSchemaInType = "";
+                }, 0);
+
+            }
+        }
+
+
+        if (schemaType == 'schema-out') {
+
+            if (componentType == 'NP' && this.SelectedSchemaOutType == 'Image') {
+                this.customSchemaOutDict.push({
+                    key: this.SelectedSchemaOutType,
+                    value: this.SelectedSchemaOutType + (this.customSchemaOutDict.filter(c => c.key === this.SelectedSchemaOutType).length + 1),
+                    ImageType: 'image/jpeg'
+                });
+                setTimeout(() => {
+                    this.SelectedSchemaOutType = "";
+                }, 0);
+                return;
+            }
+            if (componentType == 'SOF') {
+                this.customSchemaOutFindings.push({
+                    key: this.SelectedSchemaOutFinding,
+                    value: this.SelectedSchemaOutFinding + (this.customSchemaOutFindings.filter(c => c.key === this.SelectedSchemaOutFinding).length + 1)
+                });
+                setTimeout(() => {
+                    this.SelectedSchemaOutFinding = "";
+                }, 0);
+            }
+            else {
+                this.customSchemaOutDict.push({
+                    key: this.SelectedSchemaOutType,
+                    value: this.SelectedSchemaOutType + (this.customSchemaOutDict.filter(c => c.key === this.SelectedSchemaOutType).length + 1)
+                });
+                setTimeout(() => {
+                    this.SelectedSchemaOutType = "";
+                }, 0);
+            }
+
+        }
+    }
+
+    //Add the Child Series
+    AddChildSeries(index, type) {
+        this.hasDataChanged = true;
+        var newObj = { key: type.replace(/ /g, '-') + (index + 1), value: "" };
+        if (type == 'I') {
+            this.customSchemaInDict[index]["ChildSeries"].push(newObj);
+        }
+        else {
+            this.customSchemaInDict[index]["ChildSeries"].push(newObj);
+        }
+    }
+
+    AddChildSeriesDicom(type) {
+        this.hasDataChanged = true;
+        let noOfElements = (this.customschemaInDicom["ChildSeries"] || []).length;
+        let key = this.DicomBaseSubKeyValue + (noOfElements + 1)
+        var newObj = { key, value: "" }
+        this.customschemaInDicom["ChildSeries"].push(newObj);
+    }
+
+
+    AddChildSeriesDicomOut(type) {
+        this.hasDataChanged = true;
+        let noOfElements = (this.customschemaOutDicom["ChildSeries"] || []).length;
+        let key = this.DicomBaseSubKeyValue + (noOfElements + 1)
+        var newObj = { key, value: "" }
+        this.customschemaOutDicom["ChildSeries"].push(newObj);
+    }
+
+    //Add the Multiphase Child Series
+    AddChildMultiphaseSeriesDicom() {
+        this.hasDataChanged = true;
+        var newObj = { key: "", value: "" }
+        this.customschemaInDicom["ChildMultiphaseSeries"].push(newObj);
+    }
+
+    //Add the Multiphase Child Series
+    AddChildMultiphaseSeries(index, type) {
+        this.hasDataChanged = true;
+        var newObj = { key: "", value: "" }
+        if (type == 'I') {
+            this.customSchemaInDict[index]["ChildMultiphaseSeries"].push(newObj);
+        }
+        else {
+            this.customSchemaInDict[index]["ChildMultiphaseSeries"].push(newObj);
+        }
+    }
+
+    //Delete the child series
+    DeleteChildSeries(schemaType, keyIndex, childIndex, type) {
+        this.hasDataChanged = true;
+        this.customSchemaInDict[keyIndex]["ChildSeries"].splice(childIndex, 1);
+
+    }
+
+
+    //Delete the child series
+    DeleteChildMultiphaseSeries(schemaType, keyIndex, childIndex, type) {
+        this.hasDataChanged = true;
+        this.customSchemaInDict[keyIndex]["ChildMultiphaseSeries"].splice(childIndex, 1);
+    }
+
+    //Delete the Dicom Type Child Series
+    DeleteChildSeriesDicom(childIndex, dicomType) {
+        if (dicomType == 'I') {
+            this.hasDataChanged = true;
+            this.customschemaInDicom["ChildSeries"].splice(childIndex, 1);
+        }
+        else {
+            this.hasDataChanged = true;
+            this.customschemaOutDicom["ChildSeries"].splice(childIndex, 1);
+        }
+    }
+
+    //Delete the Dicom Type Multi Phase Series
+    DeleteChildMultiphaseSeriesDicom(childIndex, dicomType) {
+        if (dicomType == 'I') {
+            this.hasDataChanged = true;
+            this.customschemaInDicom["ChildMultiphaseSeries"].splice(childIndex, 1);
+        }
+        else {
+            this.hasDataChanged = true;
+            this.customschemaOutDicom["childMultiphaseSeries"].splice(childIndex, 1);
+        }
+
+    }
+
+    //Delete the Dicom type
+    DeleteDicomType(dicomType) {
+        if (dicomType == 'I') {
+            this.SelectedSchemaInDicomType = "";
+            this.customschemaInDicom = {};
+        }
+        else {
+            this.SelectedSchemaOutDicomType = "";
+            this.customschemaOutDicom = {};
+        }
+    }
+
+
+    DeleteInfoKeyOptions(itemIndex, keyIndex) {
+        this.MachineData.Label.info[keyIndex]["InfoValueOptions"].splice(itemIndex, 1);
+        this.httpc.post("/api/machines/SaveLabelInfo", { MachineID: this.route.snapshot.queryParamMap.get("id"), Label: this.MachineData.Label }).subscribe(
+            (returnData: any) => {
+                this.CancelLabelInfo();
+            },
+            error => { });
+    }
+
+    //Remove the info key dynamically
+    DeleteDynamicInfoKey(index, type) {
+        if (type == 1) {
+
+            this.SelectedMultipleInfo.splice(index, 1);
+        }
+        else {
+
+            this.NewMultipleInfo.splice(index, 1);
+        }
+    }
+
+    //This method is used to bind the Schema Data
+    BindSchemaData() {
+        this.schemaInData = this.MachineData.Label["schema-in"];
+        this.schemaOutData = this.MachineData.Label["schema-out"];
+        //label creator is off, so don't remove default items
+        if (this.IsLabelCreatorEnabled == false)
+            return;
+
+        this.CustomSchemaData();
+        if ((Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) || Object.keys(this.schemaInData).length == 0) {
+            if (Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) {
+                delete this.MachineData.Label['schema-in']["dicom-series-in"];
+                this.schemaInData = this.MachineData.Label["schema-in"];
+
+            }
+            //this.schemaInDict.push({
+            //    key: "Input_data_1",
+            //    value: ""
+            //});
+        }
+
+        if ((Object.keys(this.schemaOutData).length == 1 && this.schemaOutData["dicom-series-out"] != undefined) || Object.keys(this.schemaOutData).length == 0) {
+            if (Object.keys(this.schemaOutData).length == 1 && this.schemaOutData["dicom-series-out"] != undefined) {
+                delete this.MachineData.Label['schema-out']["dicom-series-out"];
+                this.schemaOutData = this.MachineData.Label["schema-out"];
+            }
+            //this.schemaOutDict.push({
+            //    key: "Output_data_1",
+            //    value: ""
+            //});
+        }
+    }
+
+    CustomSchemaData() {
+        this.schemaInData = this.MachineData.Label["schema-in"];
+        this.schemaOutData = this.MachineData.Label["schema-out"];
+
+        //Schema In binding
+        var customSchemaInKeys = Object.keys(this.schemaInData);
+        var customSchemaInTypes = [];
+        var customSchemaOutKeys = Object.keys(this.schemaOutData);
+        var schemaInTypes = this.dicomInTypes;
+        var primitivInTypes = this.primitivInTypes;
+        this.customschemaInDicom = {};
+
+
+        this.customschemaOutDicom = {};
+        var customSchemaOutTypes = [];
+        var schemaOutTypes = this.dicomOutTypes;
+        var primitivOutTypes = this.primitivOutFileTypes;
+
+        for (var item in customSchemaInKeys) {
+            var newObject = {};
+            if (this.schemaInData[customSchemaInKeys[item]]['dicom-type'] != undefined)
+                var dropdownKey = this.schemaInData[customSchemaInKeys[item]]['dicom-type'];
+            else
+                var dropdownKey = this.schemaInData[customSchemaInKeys[item]]['type'];
+
+
+            newObject["key"] = dropdownKey;
+            newObject["value"] = customSchemaInKeys[item];
+            newObject["AdditionalInfo"] = this.schemaInData[customSchemaInKeys[item]]["Description"];
+
+            if (this.schemaInConfig[dropdownKey] != undefined && this.schemaInConfig[dropdownKey]["IsDefaultValExists"] == true)
+                newObject["DefaultValue"] = this.schemaInData[customSchemaInKeys[item]]["DefaultValue"];
+
+            if (this.schemaInConfig[dropdownKey] != undefined && this.schemaInConfig[dropdownKey]["IsMinValExists"] == true)
+                newObject["MinValue"] = this.schemaInData[customSchemaInKeys[item]]["MinValue"];
+
+            if (this.schemaInConfig[dropdownKey] != undefined && this.schemaInConfig[dropdownKey]["IsMaxValExists"] == true)
+                newObject["MaxValue"] = this.schemaInData[customSchemaInKeys[item]]["MaxValue"];
+
+            if (this.schemaInConfig[dropdownKey] != undefined && this.schemaInConfig[dropdownKey]["IsMaxLengthExists"] == true)
+                newObject["MaxLength"] = this.schemaInData[customSchemaInKeys[item]]["MaxLength"];
+
+            if (this.schemaInConfig[dropdownKey] != undefined && this.schemaInConfig[dropdownKey]["IsChildSeriesExists"] == true)
+                newObject["ChildSeries"] = this.schemaInData[customSchemaInKeys[item]]["ChildSeries"];
+
+            if (this.schemaInConfig[dropdownKey] != undefined && this.schemaInConfig[dropdownKey]["IsChildMultiphaseExists"] == true)
+                newObject["ChildMultiphaseSeries"] = this.schemaInData[customSchemaInKeys[item]]["ChildMultiphaseSeries"];
+            if (schemaInTypes.indexOf(dropdownKey) > -1) {
+                this.customschemaInDicom = newObject;
+                this.SelectedSchemaInDicomType = dropdownKey;
+            }
+            else if (schemaInTypes.indexOf(dropdownKey) <= -1) {
+                customSchemaInTypes.push(dropdownKey);
+                this.customSchemaInDict.push(newObject);
+            }
+
+            //if (schemaInTypes.indexOf(dropdownKey) > -1) {
+            //    this.customschemaInDicom = newObject;
+            //    this.SelectedSchemaInDicomType = dropdownKey;
+            //}
+            //else if (schemaInTypes.indexOf(dropdownKey) <= -1) {
+            //    customSchemaInTypes.push(dropdownKey);
+            //    this.customSchemaInDict.push(newObject);
+            //}
+
+        }
+
+        for (var i = 0; i < primitivInTypes.length; i++) {
+            var key = primitivInTypes[i];
+            if (customSchemaInTypes.indexOf(key) > -1 && key != "File" && key != "Integer" && key != "String" && key != "Float") {
+                this.SelectedSchemaInItems.push(key);
+            }
+        }
+
+        //Schema out binding
+        for (var item in customSchemaOutKeys) {
+            var newObject = {};
+            if (this.schemaOutData[customSchemaOutKeys[item]]['dicom-type'] != undefined)
+                var dropdownKey = this.schemaOutData[customSchemaOutKeys[item]]['dicom-type'];
+            else
+                var dropdownKey = this.schemaOutData[customSchemaOutKeys[item]]['type'];
+
+            newObject["key"] = dropdownKey;
+            newObject["value"] = customSchemaOutKeys[item];
+
+            if (this.schemaOutConfig[dropdownKey] != undefined && this.schemaOutConfig[dropdownKey]["IsImageTypeNeeded"] == true)
+                newObject["ImageType"] = this.schemaOutData[customSchemaOutKeys[item]]["ImageType"];
+
+            newObject["AdditionalInfo"] = this.schemaOutData[customSchemaOutKeys[item]]["Description"];
+
+            if (this.schemaOutConfig[dropdownKey] != undefined && this.schemaOutConfig[dropdownKey]["IsDefaultValExists"] == true)
+                newObject["DefaultValue"] = this.schemaOutData[customSchemaOutKeys[item]]["DefaultValue"];
+
+            if (this.schemaOutConfig[dropdownKey] != undefined && this.schemaOutConfig[dropdownKey]["IsMinValExists"] == true)
+                newObject["MinValue"] = this.schemaOutData[customSchemaOutKeys[item]]["MinValue"];
+
+            if (this.schemaOutConfig[dropdownKey] != undefined && this.schemaOutConfig[dropdownKey]["IsMaxValExists"] == true)
+                newObject["MaxValue"] = this.schemaOutData[customSchemaOutKeys[item]]["MaxValue"];
+
+            if (this.schemaOutConfig[dropdownKey] != undefined && this.schemaOutConfig[dropdownKey]["IsMaxLengthExists"] == true)
+                newObject["MaxLength"] = this.schemaOutData[customSchemaOutKeys[item]]["MaxLength"];
+
+            if (this.schemaOutConfig[dropdownKey] != undefined && this.schemaOutConfig[dropdownKey]["IsChildSeriesExists"] == true)
+                newObject["ChildSeries"] = this.schemaOutData[customSchemaOutKeys[item]]["ChildSeries"];
+
+            if (this.schemaOutConfig[dropdownKey] != undefined && this.schemaOutConfig[dropdownKey]["IsChildMultiphaseExists"] == true)
+                newObject["ChildMultiphaseSeries"] = this.schemaOutData[customSchemaOutKeys[item]]["ChildMultiphaseSeries"];
+
+            if (schemaOutTypes.indexOf(dropdownKey) > -1) {
+                this.customschemaOutDicom = newObject;
+                this.SelectedSchemaOutDicomType = dropdownKey;
+            }
+            else if (this.primitivOutFinding.indexOf(dropdownKey) > -1) {
+                this.customSchemaOutFindings.push(newObject);
+            }
+            else if (schemaOutTypes.indexOf(dropdownKey) <= -1) {
+                customSchemaOutTypes.push(dropdownKey);
+                this.customSchemaOutDict.push(newObject);
+            }
+        }
+    }
+
+
+    isEmptyOrSpaces(str) {
+        return str === null || str.match(/^ *$/) !== null;
+    }
+
+    between(x, min, max) {
+        return x >= min && x <= max;
+    }
+
+    //This method is used to validate and save the schema key
+    ValidateAndSaveDynamicSchemaKey() {
+        var newInRow = {};
+        var newOutRow = {};
+        var schemInStr = "";
+        var schemaInKeys = [];
+        var schemaOutStr = "";
+        var schemaOutKeys = [];
+        var childKeys = [];
+        var customOutDic = [];
+        var customInDic = [];
+        customOutDic = this.customSchemaOutDict;
+        customInDic = this.customSchemaInDict;
+        if (this.SelectedSchemaInDicomType != "") {
+            this.customSchemaInDict = [this.customschemaInDicom].concat(this.customSchemaInDict);
+        }
+
+        if (this.SelectedSchemaOutDicomType != "")
+            this.customSchemaOutDict = [this.customschemaOutDicom].concat(this.customSchemaOutDict);
+
+        if (this.customSchemaOutFindings.length > 0)
+            this.customSchemaOutDict = this.customSchemaOutFindings.concat(this.customSchemaOutDict);
+
+        if (!this.ValidateSchemaForm()) {
+            this.customSchemaInDict = customInDic;
+            this.customSchemaOutDict = customOutDic;
+            this.lblSchemaErrorMessage = "Some Error Exists in Schema Section";
+            this.schemaInErrorMsgs.push(this.lblSchemaErrorMessage);
+            return;
+        }
+
+        for (let i = 0; i < this.customSchemaInDict.length; i++) {
+            newInRow = {};
+            schemaInKeys.push(this.customSchemaInDict[i].value);
+            newInRow[this.customSchemaInDict[i].value] = { "type": this.customSchemaInDict[i].key };
+
+            if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsAdditionalInfoNeeded'] == true)
+                newInRow[this.customSchemaInDict[i].value]['Description'] = this.customSchemaInDict[i].AdditionalInfo;
+
+            if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsDefaultValExists'] == true) {
+                var defaultVal = 0;
+                var minValue = 0;
+                var maxValue = 0;
+                if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsDefaultValExists'] == true) {
+                    defaultVal = this.customSchemaInDict[i].DefaultValue;
+                    newInRow[this.customSchemaInDict[i].value]['DefaultValue'] = this.customSchemaInDict[i].DefaultValue;
+                }
+                if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMinValExists'] == true) {
+                    minValue = this.customSchemaInDict[i].MinValue;
+                    newInRow[this.customSchemaInDict[i].value]['MinValue'] = this.customSchemaInDict[i].MinValue;
+                }
+                if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMaxValExists'] == true) {
+                    maxValue = this.customSchemaInDict[i].MaxValue;
+                    newInRow[this.customSchemaInDict[i].value]['MaxValue'] = this.customSchemaInDict[i].MaxValue;
+                }
+
+                if (minValue > maxValue) {
+                    this.schemaInErrorMsg = "Minimum value should not be greater than maximum value";
+                    this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                    // if (this.SelectedSchemaInDicomType != "")
+                    //     this.customSchemaInDict = customInDic;
+                    // return;
+                }
+                if (!this.between(defaultVal, minValue, maxValue)) {
+                    this.schemaInErrorMsg = "Default value should be between min and max";
+                    this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                    // if (this.SelectedSchemaInDicomType != "")
+                    //     this.customSchemaInDict = customInDic;
+                    // return;
+                }
+            }
+
+            if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMaxLengthExists'] == true)
+                newInRow[this.customSchemaInDict[i].value]['MaxLength'] = this.customSchemaInDict[i].MaxLength;
+
+
+            if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsChildSeriesExists'] == true) {
+                childKeys = [];
+                for (var item in this.customSchemaInDict[i].ChildSeries) {
+
+                    if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsDefaultValExists'] == true) {
+
+                        var defaultVal = 0;
+                        var minValue = 0;
+                        var maxValue = 0;
+                        if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsDefaultValExists'] == true) {
+                            defaultVal = this.customSchemaInDict[i].ChildSeries[item].DefaultValue;
+                        }
+                        if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMinValExists'] == true) {
+                            minValue = this.customSchemaInDict[i].ChildSeries[item].MinValue;
+                        }
+                        if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMaxValExists'] == true) {
+                            maxValue = this.customSchemaInDict[i].ChildSeries[item].MaxValue;
+                        }
+
+                        if (minValue > maxValue) {
+                            this.schemaInErrorMsg = "Minimum value should not be greater than maximum value";
+                            this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                            // if (this.SelectedSchemaInDicomType != "")
+                            //     this.customSchemaInDict = customInDic;
+
+                            // return;
+                        }
+
+                        if (!this.between(defaultVal, minValue, maxValue)) {
+                            this.schemaInErrorMsg = "Default value should be between min and max";
+                            this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                            // if (this.SelectedSchemaInDicomType != "")
+                            //     this.customSchemaInDict = customInDic;
+
+                            // return;
+                        }
+                    }
+
+                    if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsDefaultValExists'] == true) {
+
+                        var defaultVal = 0;
+                        var minValue = 0;
+                        var maxValue = 0;
+                        if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsDefaultValExists'] == true) {
+                            defaultVal = this.customSchemaInDict[i].ChildSeries[item].DefaultValue;
+                            if (this.isEmptyOrSpaces(defaultVal) || isNaN(defaultVal)) {
+                                this.schemaInErrorMsg = "Please enter valid default value";
+                                this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                                if (this.SelectedSchemaInDicomType != "")
+                                    this.customSchemaInDict.splice(0, 1);
+
+                                // return;
+                            }
+                        }
+                        if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMinValExists'] == true) {
+                            minValue = this.customSchemaInDict[i].ChildSeries[item].MinValue;
+                            if (this.isEmptyOrSpaces(minValue) || isNaN(minValue)) {
+                                this.schemaInErrorMsg = "Please enter valid minimum value";
+                                this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                                if (this.SelectedSchemaInDicomType != "")
+                                    this.customSchemaInDict.splice(0, 1);
+
+                                // return;
+                            }
+                        }
+                        if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMaxValExists'] == true) {
+                            maxValue = this.customSchemaInDict[i].ChildSeries[item].MaxValue;
+                            if (this.isEmptyOrSpaces(maxValue) || isNaN(maxValue)) {
+                                this.schemaInErrorMsg = "Please enter valid maximum value";
+                                this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                                if (this.SelectedSchemaInDicomType != "")
+                                    this.customSchemaInDict.splice(0, 1);
+
+                                // return;
+                            }
+                        }
+
+                        if (minValue > maxValue) {
+                            this.schemaInErrorMsg = "Minimum value should not be greater than maximum value";
+                            this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                            if (this.SelectedSchemaInDicomType != "")
+                                this.customSchemaInDict.splice(0, 1);
+
+                            // return;
+                        }
+
+                        if (!this.between(defaultVal, minValue, maxValue)) {
+                            this.schemaInErrorMsg = "Default value should be between min and max";
+                            this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                            if (this.SelectedSchemaInDicomType != "")
+                                this.customSchemaInDict.splice(0, 1);
+
+                            // return;
+                        }
+                    }
+
+                    if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsMaxLengthExists'] == true) {
+                        if (this.isEmptyOrSpaces(this.customSchemaInDict[i].ChildSeries[item].MaxLength) || isNaN(this.customSchemaInDict[i].ChildSeries[item].MaxLength)) {
+                            this.schemaInErrorMsg = "Please enter valid max length";
+                            this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                            if (this.SelectedSchemaInDicomType != "")
+                                this.customSchemaInDict.splice(0, 1);
+
+                            // return;
+                        }
+                        if (Number(this.customSchemaInDict[i].ChildSeries[item].MaxLength) <= 0) {
+                            this.schemaInErrorMsg = "Max length should be greater than 0";
+                            this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                            if (this.SelectedSchemaInDicomType != "")
+                                this.customSchemaInDict.splice(0, 1);
+                            // return;
+                        }
+                    }
+
+                    childKeys.push(this.customSchemaInDict[i].ChildSeries[item].key.trim());
+                }
+                if (this.hasDuplicates(childKeys)) {
+                    this.schemaInErrorMsg = "Please enter the unique sub keys in input schema";
+                    this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                    // if (this.SelectedSchemaInDicomType != "") {
+                    //     this.customSchemaInDict = customInDic;
+                    //     this.customSchemaOutDict = customOutDic;
+                    // }
+
+
+                    // return;
+                }
+                newInRow[this.customSchemaInDict[i].value]["ChildSeries"] = this.customSchemaInDict[i].ChildSeries;
+            }
+            if (this.schemaInConfig[this.customSchemaInDict[i].key]['IsChildMultiphaseExists'] == true) {
+                childKeys = [];
+                for (var item in this.customSchemaInDict[i].ChildMultiphaseSeries) {
+                    childKeys.push(this.customSchemaInDict[i].ChildMultiphaseSeries[item].key.trim());
+                }
+                if (this.hasDuplicates(childKeys)) {
+                    this.schemaInErrorMsg = "Please enter the unique multi_phase sub keys in input schema";
+                    this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+                    // if (this.SelectedSchemaInDicomType != "") {
+                    //     this.customSchemaInDict = customInDic;
+                    //     this.customSchemaOutDict = customOutDic;
+                    // }
+                    // return;
+                }
+                newInRow[this.customSchemaInDict[i].value]["ChildMultiphaseSeries"] = this.customSchemaInDict[i].ChildMultiphaseSeries;
+            }
+            schemInStr = schemInStr.slice(0, -1) + "," + JSON.stringify(newInRow).slice(1);
+            //newSchemInCollection.push(newInRow);
+        }
+        schemInStr = "{" + schemInStr.slice(1, -1) + "}";
+
+        if (this.hasDuplicates(schemaInKeys)) {
+            this.schemaInErrorMsg = "Please enter unique keys in input schema";
+            this.schemaInErrorMsgs.push(this.schemaInErrorMsg);
+            // if (this.SelectedSchemaInDicomType != "") {
+            //     this.customSchemaInDict = customInDic;
+            //     this.customSchemaOutDict = customOutDic;
+            // }
+            // return;
+        }
+
+        this.MachineData.Label["schema-in"] = JSON.parse(schemInStr);
+        console.log(JSON.parse(schemInStr));
+        this.customSchemaInDict = customInDic;
+
+        for (let i = 0; i < this.customSchemaOutDict.length; i++) {
+            newInRow = {};
+            schemaOutKeys.push(this.customSchemaOutDict[i].value);
+            newInRow[this.customSchemaOutDict[i].value] = { "type": this.customSchemaOutDict[i].key };
+
+            if (this.schemaOutConfig[this.customSchemaOutDict[i].key]['IsAdditionalInfoNeeded'] == true)
+                newInRow[this.customSchemaOutDict[i].value]['Description'] = this.customSchemaOutDict[i].AdditionalInfo;
+
+            if (this.schemaOutConfig[this.customSchemaOutDict[i].key]['IsImageTypeNeeded'] == true)
+                newInRow[this.customSchemaOutDict[i].value]['ImageType'] = this.customSchemaOutDict[i].ImageType;
+
+            if (this.schemaOutConfig[this.customSchemaOutDict[i].key]['IsChildSeriesExists'] == true) {
+                childKeys = [];
+                for (var item in this.customSchemaOutDict[i].ChildSeries) {
+                    childKeys.push(this.customSchemaOutDict[i].ChildSeries[item].key.trim());
+                }
+                if (this.hasDuplicates(childKeys)) {
+                    this.schemaOutErrorMsg = "Please enter the unique sub keys in output schema";
+                    this.schemaOutErrorMsgs.push(this.schemaOutErrorMsg);
+                    // if (this.SelectedSchemaOutDicomType != "") {
+                    //     this.customSchemaInDict = customInDic;
+                    //     this.customSchemaOutDict = customOutDic;
+                    // }
+                    // return;
+                }
+                newInRow[this.customSchemaOutDict[i].value]["ChildSeries"] = this.customSchemaOutDict[i].ChildSeries;
+            }
+            schemaOutStr = schemaOutStr.slice(0, -1) + "," + JSON.stringify(newInRow).slice(1);
+        }
+        schemaOutStr = "{" + schemaOutStr.slice(1, -1) + "}";
+
+        if (this.hasDuplicates(schemaOutKeys)) {
+            this.schemaOutErrorMsg = "Please enter unique keys in output schema";
+            this.schemaOutErrorMsgs.push(this.schemaOutErrorMsg);
+        }
+        console.log(JSON.parse(schemaOutStr));
+        if (this.schemaOutErrorMsgs.length > 0 || this.schemaInErrorMsgs.length > 0) {
+            this.customSchemaInDict = customInDic;
+            this.customSchemaOutDict = customOutDic;
+            return;
+        }
+        this.customSchemaOutDict = customOutDic;
+        this.MachineData.Label["schema-out"] = JSON.parse(schemaOutStr);
+    }
+
+    //This method is used to validate the schema  data
+    ValidateSchemaForm() {
+        //Schema In section
+        let re = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+        let patt = new RegExp(re);
+        if (this.customschemaInDicom.value && !patt.test(this.customschemaInDicom.value)) {
+            return false;
+        }
+        if (this.customschemaInDicom.ChildSeries) {
+            for (let i=0; i< this.customschemaInDicom.ChildSeries.length; i++) {
+                if (!patt.test(this.customschemaInDicom.ChildSeries[i].key)) {
+                    return false;
+                }
+            }
+        }
+        if (this.customschemaInDicom.ChildMultiphaseSeries) {
+            for (let i=0; i< this.customschemaInDicom.ChildMultiphaseSeries.length; i++) {
+                if (!patt.test(this.customschemaInDicom.ChildMultiphaseSeries[i].key)) {
+                    return false;
+                }
+            }
+        }
+
+        if (this.customschemaOutDicom.value && !patt.test(this.customschemaOutDicom.value)) {
+            return false;
+        }
+
+        if (this.customschemaOutDicom.ChildSeries) {
+            for (let i=0; i< this.customschemaOutDicom.ChildSeries.length; i++) {
+                if (!patt.test(this.customschemaOutDicom.ChildSeries[i].key)) {
+                    return false;
+                }
+            }
+        }
+        if (this.customschemaOutDicom.ChildMultiphaseSeries) {
+            for (var i=0; i< this.customschemaOutDicom.ChildMultiphaseSeries.length; i++) {
+                if (!patt.test(this.customschemaOutDicom.ChildMultiphaseSeries[i].key)) {
+                    return false;
+                }
+            }
+        }
+
+        for (let i=0; i< this.customSchemaInDict.length; i++) {
+            if (!patt.test(this.customSchemaInDict[i].value)) {
+                return false;
+            }
+            if (this.customSchemaInDict[i].ChildSeries) {
+                for (let j=0; j< this.customSchemaInDict[i].ChildSeries.length; j++) {
+                    if (!patt.test(this.customSchemaInDict[i].ChildSeries[j].key)) {
+                        return false;
+                    }
+                }
+            }
+            if (this.customSchemaInDict[i].ChildMultiphaseSeries) {
+                for (let j=0; j< this.customSchemaInDict[i].ChildMultiphaseSeries.length; j++) {
+                    if (!patt.test(this.customSchemaInDict[i].ChildMultiphaseSeries[j].key)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        for (let i=0; i< this.customSchemaOutDict.length; i++) {
+            if (!patt.test(this.customSchemaOutDict[i].value)) {
+                return false;
+            }
+            if (this.customSchemaOutDict[i].ChildSeries) {
+                for (let j=0; j< this.customSchemaOutDict[i].ChildSeries.length; j++) {
+                    if (!patt.test(this.customSchemaOutDict[i].ChildSeries[j].key)) {
+                        return false;
+                    }
+                }
+            }
+            if (this.customSchemaOutDict[i].ChildMultiphaseSeries) {
+                for (let j=0; j< this.customSchemaOutDict[i].ChildMultiphaseSeries.length; j++) {
+                    if (!patt.test(this.customSchemaOutDict[i].ChildMultiphaseSeries[j].key)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    //This method is used to check if the array has duplicates or not
+    hasDuplicates(array) {
+        array = array.map(item => item.toLowerCase());
+        var valuesSoFar = Object.create(null);
+        for (var i = 0; i < array.length; ++i) {
+            var value = array[i];
+            if (value in valuesSoFar) {
+                return true;
+            }
+            valuesSoFar[value] = true;
+        }
+        return false;
+    }
+
+    DataChange() {
+        this.hasDataChanged = true;
+    }
+
+    //This method is used to delete the schema key
+    DeleteSchemaKey(schemaType, key) {
+        this.hasDataChanged = true;
+
+        delete this.MachineData.Label[schemaType][key];
+        this.httpc.post("/api/machines/SaveLabelInfo", { MachineID: this.route.snapshot.queryParamMap.get("id"), Label: this.MachineData.Label }).subscribe(
+            (returnData: any) => {
+                this.CancelLabelInfo();
+            },
+            error => { });
+    }
+
+    DeleteInfoKey(index, key) {
+
+        //delete this.MachineData.Label.info[index];
+        if (index > -1) {
+            this.MachineData.Label.info.splice(index, 1);
+        }
+        this.httpc.post("/api/machines/SaveLabelInfo", { MachineID: this.route.snapshot.queryParamMap.get("id"), Label: this.MachineData.Label }).subscribe(
+            (returnData: any) => {
+                this.CancelLabelInfo();
+                if (index > -1 && this.infoSectionFields_copy.indexOf(key) > -1) {
+                    this.infoSectionFields.push(key);
+                }
+            },
+            error => { });
+    }
+
+}
+
+export interface DeploymentMachine {
+    fulldockerid: string;
+    versiontag: string;
+    lastdeployed: Date;
+}
+export class InfoProp {
+    title: string;
+    value: any;
+}
+
+enum ValueType {
+    FreeText = 1,
+    Numeric = 2,
+    BinarySelector = 3,
+    Slider = 4,
+    MinMaxSlider = 5,
+    Select = 6,
+    MultiSelect = 7
+}
