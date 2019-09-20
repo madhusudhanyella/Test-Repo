@@ -1,0 +1,9 @@
+.docker-properties mat-form-field,
+.docker-properties mat-radio-group {
+    margin-bottom: 10px !important;
+    padding-top: 5px;
+}
+
+.docker-properties mat-radio-button {
+    padding-left: 15px;
+}
