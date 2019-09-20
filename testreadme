@@ -457,9 +457,116 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     DicomBaseSubKeyValue = 'Dicom-Series';
 
+    DockerProperties = [
+        {
+            id: 'baseOS',
+            type: 'dropdown',
+            name: 'Base OS',
+            enabled: true,
+            options: ['Linux', 'Windows'],
+            disableControldId: '',
+            disableControlValue: '',
+            selectedValue: '',
+            minValue: '',
+            maxValue: '',
+            defaultText: '--Please choose an OS--',
+            position: 'left'
+        },
+        {
+            id: 'gpu',
+            type: 'radio',
+            name: 'NVIDA SDK (GPU)',
+            enable: true,
+            options: ['Yes', 'No'],
+            disableControldId: 'baseOS',
+            disableControlValue: 'Windows',
+            selectedValue: '',
+            minValue: '',
+            maxValue: '',
+            defaultText: '',
+            position: 'left'
+        },
+        {
+            id: 'typicalDataSize',
+            type: 'integer',
+            name: 'Typical Data Size (Slices)',
+            enable: true,
+            options: [],
+            disableControldId: '',
+            disableControlValue: '',
+            selectedValue: '',
+            minValue: '',
+            maxValue: '',
+            defaultText: '',
+            position: 'right'
+        },
+        {
+            id: 'minimumCPUCore',
+            type: 'slider',
+            name: 'Minimum CPU (Core)',
+            enable: true,
+            options: [],
+            disableControldId: '',
+            disableControlValue: '',
+            selectedValue: '',
+            minValue: 1,
+            maxValue: 16,
+            defaultText: '',
+            position: 'left'
+        },
+        {
+            id: 'minimumMemoryGB',
+            type: 'dropdown',
+            name: 'Minimum Memory (GB)',
+            enable: true,
+            options: [4, 8, 16, 32, 64],
+            disableControldId: '',
+            disableControlValue: '',
+            selectedValue: '',
+            minValue: '',
+            maxValue: '',
+            defaultText: '--Please choose memory (GB) --',
+            position: 'right'
+        },
+        {
+            id: 'typicalProcessTime',
+            type: 'integer',
+            name: 'Typical Process Time (min)',
+            enable: true,
+            options: [],
+            disableControldId: '',
+            disableControlValue: '',
+            selectedValue: '',
+            minValue: '',
+            maxValue: '',
+            defaultText: '',
+            position: 'right'
+        },
+        {
+            id: 'maximumProcessTime',
+            type: 'integer',
+            name: 'Maximum Process Time (min)',
+            enable: true,
+            options: [],
+            disableControldId: '',
+            disableControlValue: '',
+            selectedValue: '',
+            minValue: 0,
+            maxValue: 60,
+            defaultText: '',
+            position: 'right'
+        }
+    ]
+
+    LeftDockerProperties = this.DockerProperties.filter(c => c.position === 'left');
+    RightDockerProperties = this.DockerProperties.filter(c => c.position === 'right');
+
     constructor(private eleRef: ElementRef, private httpc: HttpClient, public dialog: MatDialog,
         private route: ActivatedRoute, public router: Router, public snackBar: MatSnackBar, private _ngZone: NgZone, private change: ChangeDetectorRef, private matList: MatGridListModule, public errorService: ErrorSnackBarService) {
 
+    }
+    Test(t) {
+        console.log(t)
     }
 
     ngOnInit() {
@@ -1173,6 +1280,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     //This method is used to save the JSON data
     SaveJsonData(section) {
+        console.log(this.DockerProperties);
         this.labelInfoErrorMsg = "";
         this.schemStaticInfoErrorMsg = "";
         this.schemaInErrorMsg = "";
