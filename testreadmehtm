@@ -58,15 +58,158 @@
                 <h2>Retrieving information from docker container now</h2>
             </div>
         </mat-tab>
+
+
+
         <mat-tab *ngIf="Mode =='dev' && IsLabelCreatorEnabled==true" label="Label Creator">
             <mat-accordion *ngIf="MachineData.LabelJSON != '' && MachineData.Label != null">
-                <mat-expansion-panel [expanded]="Step==1" (opened)="Step=1;">
+                    <mat-expansion-panel [expanded]="Step==1" (opened)="Step=1;">
+                            <mat-expansion-panel-header>
+                                <mat-panel-title>
+                                    Docker Properties
+                                </mat-panel-title>
+                            </mat-expansion-panel-header>
+                            <span style="color:red">{{schemStaticInfoErrorMsg}}</span>
+                            <!-- <div id="dvStaticFieldInfo" style="width:100%;">
+                                <table style="margin-top:30px" class="example-full-width" cellspacing="10">
+                                    <tr>
+                                        <td>
+                                            <label>NVidia : </label>
+                                        </td>
+                                        <td>
+                                            <input [checked]="MachineData.Label.nvidia == true  ? true : null" (change)="MachineData.Label.nvidia = !MachineData.Label.nvidia" type="checkbox" class="CheckBox" />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label>Time Out&nbsp;(in Mins) : </label>
+                                        </td>
+                                        <td>
+                                            <mat-form-field class="example-full-width">
+                                                <input matInput type="number" min="1" max="60" maxlength="4" [(ngModel)]="MachineData.Label.timeout">
+                                            </mat-form-field>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div> -->
+                            <form #dockerPopertiesForm="ngForm" (ngSubmit)="Test(dockerPopertiesForm)">
+                                <div fxLayoutGap="5%" fxLayout="row">
+                                    <div class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
+                                        <ng-container *ngFor="let item of LeftDockerProperties">
+                                            <ng-container *ngIf="item.type == 'dropdown'">
+                                                <mat-form-field>
+                                                    <mat-label>{{item.name}}</mat-label>
+                                                    <select matNativeControl name="{{item.id}}" [(ngModel)]="item.value">
+                                                        <option value="">{{item.defaultText}}</option>
+                                                        <ng-container *ngFor="let opt of item.options">
+                                                            <option [ngValue]="opt">{{opt}}</option>
+                                                        </ng-container>
+                                                    </select>
+                                                </mat-form-field>
+                                            </ng-container>
+                                            <ng-container *ngIf="item.type == 'integer'">
+                                                <mat-form-field>
+                                                    <mat-label>{{item.name}}</mat-label>
+                                                    <input matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.value" />
+                                                </mat-form-field>
+                                            </ng-container>
+                                            <ng-container *ngIf="item.type == 'radio'">
+                                                {{item.name + ' : '}}
+                                                <mat-radio-group aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.value">
+                                                    <ng-container *ngFor="let opt of item.options">
+                                                        <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
+                                                    </ng-container>
+                                                </mat-radio-group>
+                                            </ng-container>
+                                            <ng-container *ngIf="item.type == 'slider'">
+                                                {{item.name + ' : '}}
+                                                <mat-slider name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.value"></mat-slider>
+                                            </ng-container>
+                                        </ng-container>
+                                    </div>
+                                    <div class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
+                                        <ng-container *ngFor="let item of RightDockerProperties">
+                                            <ng-container *ngIf="item.type == 'dropdown'">
+                                                <mat-form-field>
+                                                    <mat-label>{{item.name}}</mat-label>
+                                                    <select matNativeControl name="{{item.id}}" [(ngModel)]="item.value">
+                                                        <option value="">{{item.defaultText}}</option>
+                                                        <ng-container *ngFor="let opt of item.options">
+                                                            <option [ngValue]="opt">{{opt}}</option>
+                                                        </ng-container>
+                                                    </select>
+                                                </mat-form-field>
+                                            </ng-container>
+                                            <ng-container *ngIf="item.type == 'integer'">
+                                                <mat-form-field>
+                                                    <mat-label>{{item.name}}</mat-label>
+                                                    <input matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.value" />
+                                                </mat-form-field>
+                                            </ng-container>
+                                            <ng-container *ngIf="item.type == 'radio'">
+                                                {{item.name + ' : '}}
+                                                <mat-radio-group aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.value">
+                                                    <ng-container *ngFor="let opt of item.options">
+                                                        <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
+                                                    </ng-container>
+                                                </mat-radio-group>
+                                            </ng-container>
+                                            <ng-container *ngIf="item.type == 'slider'">
+                                                {{item.name + ' : '}}
+                                                <mat-slider name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.value"></mat-slider>
+                                            </ng-container>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                                <!-- <div fxLayout="row">
+                                    <div id="dvStaticFieldInfo" style="width:100%;">
+                                        <table style="margin-top:30px" class="example-full-width" cellspacing="10">
+                                            <tr *ngFor="let item of DockerProperties">
+                                                <td>
+                                                        <label>{{item.name}}</label>
+                                                </td>
+                                                <td *ngIf="item.type == 'dropdown'">
+                                                    <select name="{{item.id}}" [(ngModel)]="item.value">
+                                                        <option value="">{{item.defaultText}}</option>
+                                                        <ng-container *ngFor="let opt of item.options">
+                                                            <option [ngValue]="opt">{{opt}}</option>
+                                                        </ng-container>
+                                                    </select>
+                                                </td>
+                                                <td *ngIf="item.type == 'integer'">
+                                                    <input name="{{item.id}}" type="number" [(ngModel)]="item.value" />
+                                                </td>
+                                                <td *ngIf="item.type == 'radio'">
+                                                    <mat-radio-group aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.value">
+                                                        <ng-container *ngFor="let opt of item.options">
+                                                            <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
+                                                        </ng-container>
+                                                    </mat-radio-group>
+                                                </td>
+                                                <td *ngIf="item.type == 'slider'">
+                                                    <mat-slider name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.value"></mat-slider>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div> -->
+                                <mat-action-row>
+                                    <button style="height: 36px" type="submit" mat-button color="primary">Save</button>
+                                    <button mat-button color="warn" (click)="CancelLabelInfo()">Cancel</button>
+            
+                                </mat-action-row>
+                            </form>
+                     </mat-expansion-panel>
+
+
+
+                <mat-expansion-panel [expanded]="Step==2" (opened)="Step=2;">
                     <mat-expansion-panel-header>
                         <mat-panel-title>
                             Data I/O
                         </mat-panel-title>
                     </mat-expansion-panel-header>
-                    <form #myForm="ngForm" novalidate (ngSubmit)="SaveJsonData(1)">
+                    <form #myForm="ngForm" novalidate (ngSubmit)="SaveJsonData(2)">
                         <div>
                             <div fxLayout="row" fxFlex="50%" fxFlex.gt-sm="50%">
                                 <div fxLayout="column" fxFlex>
@@ -876,45 +1019,13 @@
                         </mat-action-row>
                     </form>
                 </mat-expansion-panel>
-                <mat-expansion-panel [expanded]="Step==2" (opened)="Step=2;">
-                    <mat-expansion-panel-header>
-                        <mat-panel-title>
-                            Docker Configuration
-                        </mat-panel-title>
-                    </mat-expansion-panel-header>
-                    <span style="color:red">{{schemStaticInfoErrorMsg}}</span>
-                    <div id="dvStaticFieldInfo" style="width:100%;">
-                        <table style="margin-top:30px" class="example-full-width" cellspacing="10">
-                            <tr>
-                                <td>
-                                    <label>NVidia : </label>
-                                </td>
-                                <td>
-                                    <input [checked]="MachineData.Label.nvidia == true  ? true : null" (change)="MachineData.Label.nvidia = !MachineData.Label.nvidia" type="checkbox" class="CheckBox" />
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <label>Time Out&nbsp;(in Mins) : </label>
-                                </td>
-                                <td>
-                                    <mat-form-field class="example-full-width">
-                                        <input matInput type="number" min="1" max="60" maxlength="4" [(ngModel)]="MachineData.Label.timeout">
-                                    </mat-form-field>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    <mat-action-row>
-                        <button mat-button color="primary" (click)="SaveJsonData(2)">Save</button>
-                        <button mat-button color="warn" (click)="CancelLabelInfo()">Cancel</button>
+                
 
-                    </mat-action-row>
-                </mat-expansion-panel>
+
                 <mat-expansion-panel [expanded]="Step==3" (opened)="Step=3;">
                     <mat-expansion-panel-header>
                         <mat-panel-title>
-                            Docker Description
+                            Machine Information
                         </mat-panel-title>
                     </mat-expansion-panel-header>
                     <span style="color:red">{{labelInfoErrorMsg}}</span>
@@ -1355,8 +1466,14 @@
                     </mat-action-row>
                 </mat-expansion-panel>
 
+
+
             </mat-accordion>
         </mat-tab>
+
+
+
+        
         <mat-tab label="Evaluate">
             <div class="site-main rounded text-center">
                 <mat-list *ngIf="MachineData.Label != null && !isMachineRunning">
