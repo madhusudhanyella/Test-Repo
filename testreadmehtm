@@ -92,73 +92,84 @@
                                     </tr>
                                 </table>
                             </div> -->
-                            <form #dockerPopertiesForm="ngForm" (ngSubmit)="Test(dockerPopertiesForm)">
+                            <form #dockerPopertiesForm="ngForm" (ngSubmit)="SaveJsonData(1, dockerPopertiesForm)">
                                 <div fxLayoutGap="5%" fxLayout="row">
-                                    <div class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
-                                        <ng-container *ngFor="let item of LeftDockerProperties">
-                                            <ng-container *ngIf="item.type == 'dropdown'">
-                                                <mat-form-field>
-                                                    <mat-label>{{item.name}}</mat-label>
-                                                    <select matNativeControl name="{{item.id}}" [(ngModel)]="item.value">
-                                                        <option value="">{{item.defaultText}}</option>
+                                    <div *ngFor="let alignment of DockerPropertiesAlignments" class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
+                                        <div class="docker-properties-column" fxLayout="row" *ngFor="let item of DockerPropertiesCombined[alignment]">
+                                            <div [ngClass]="item.type == 'radio' ? 'name-radio-top' : item.type == 'slider' ? 'name-slider-top' : ''" class="docker-properties-name" fxLayout="column" fxFlex="40%">
+                                                <label>{{item.name}}</label>
+                                            </div>
+                                            <div fxLayout="column" fxFlex="60%">
+                                                <ng-container *ngIf="item.type == 'dropdown'">
+                                                    <mat-form-field>
+                                                        <select (change)="PropertyChange(item)" #dropdownField="ngModel" required disabled="{{item.enable == false}}" matNativeControl name="{{item.id}}" [(ngModel)]="item.selectedValue">
+                                                            <option value="">{{item.defaultText}}</option>
+                                                            <ng-container *ngFor="let opt of item.options">
+                                                                <option [ngValue]="opt">{{opt}}</option>
+                                                            </ng-container>
+                                                        </select>
+                                                    </mat-form-field>
+                                                    <div>
+                                                        <div class="alert alert-danger" *ngIf="dropdownField.invalid && (dropdownField.dirty || dropdownField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                            <div *ngIf="dropdownField.errors.required">
+                                                                This field is required
+                                                            </div>
+                                                        </div>
+                                                        <div class="alert alert-danger" *ngIf="dropdownField?.errors?.required != true && (dropdownField.touched || dropdownField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                            Value should not be {{item.defaultValue}}
+                                                        </div>
+                                                    </div>
+                                                </ng-container>
+                                                <ng-container *ngIf="item.type == 'integer'">
+                                                    <mat-form-field>
+                                                        <input #integerField="ngModel" required min="{{item.minValue}}" max="{{item.maxValue}}" matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.selectedValue" />
+                                                    </mat-form-field>
+                                                    <div>
+                                                        <div *ngIf="integerField.invalid && (integerField.dirty || integerField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger" >
+                                                            <div *ngIf="integerField.errors.required">
+                                                                This field is required
+                                                            </div>
+                                                        </div>
+                                                        <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                            Value should not be {{item.defaultValue}}
+                                                        </div>
+                                                        <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue != item.defaultValue && (item.selectedValue > item.maxValue || item.selectedValue < item.minValue) && item.maxValue != null && item.minValue != null">
+                                                            Value should be in between {{item.minValue}} and {{item.maxValue}}
+                                                        </div>
+                                                    </div>
+                                                </ng-container>
+                                                <ng-container *ngIf="item.type == 'radio'">
+                                                    <mat-radio-group disabled="{{item.enable == false}}" #radioField="ngModel" required aria-required="" aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.selectedValue">
                                                         <ng-container *ngFor="let opt of item.options">
-                                                            <option [ngValue]="opt">{{opt}}</option>
+                                                            <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
                                                         </ng-container>
-                                                    </select>
-                                                </mat-form-field>
-                                            </ng-container>
-                                            <ng-container *ngIf="item.type == 'integer'">
-                                                <mat-form-field>
-                                                    <mat-label>{{item.name}}</mat-label>
-                                                    <input matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.value" />
-                                                </mat-form-field>
-                                            </ng-container>
-                                            <ng-container *ngIf="item.type == 'radio'">
-                                                {{item.name + ' : '}}
-                                                <mat-radio-group aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.value">
-                                                    <ng-container *ngFor="let opt of item.options">
-                                                        <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
-                                                    </ng-container>
-                                                </mat-radio-group>
-                                            </ng-container>
-                                            <ng-container *ngIf="item.type == 'slider'">
-                                                {{item.name + ' : '}}
-                                                <mat-slider name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.value"></mat-slider>
-                                            </ng-container>
-                                        </ng-container>
-                                    </div>
-                                    <div class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
-                                        <ng-container *ngFor="let item of RightDockerProperties">
-                                            <ng-container *ngIf="item.type == 'dropdown'">
-                                                <mat-form-field>
-                                                    <mat-label>{{item.name}}</mat-label>
-                                                    <select matNativeControl name="{{item.id}}" [(ngModel)]="item.value">
-                                                        <option value="">{{item.defaultText}}</option>
-                                                        <ng-container *ngFor="let opt of item.options">
-                                                            <option [ngValue]="opt">{{opt}}</option>
-                                                        </ng-container>
-                                                    </select>
-                                                </mat-form-field>
-                                            </ng-container>
-                                            <ng-container *ngIf="item.type == 'integer'">
-                                                <mat-form-field>
-                                                    <mat-label>{{item.name}}</mat-label>
-                                                    <input matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.value" />
-                                                </mat-form-field>
-                                            </ng-container>
-                                            <ng-container *ngIf="item.type == 'radio'">
-                                                {{item.name + ' : '}}
-                                                <mat-radio-group aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.value">
-                                                    <ng-container *ngFor="let opt of item.options">
-                                                        <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
-                                                    </ng-container>
-                                                </mat-radio-group>
-                                            </ng-container>
-                                            <ng-container *ngIf="item.type == 'slider'">
-                                                {{item.name + ' : '}}
-                                                <mat-slider name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.value"></mat-slider>
-                                            </ng-container>
-                                        </ng-container>
+                                                    </mat-radio-group>
+                                                    <div>
+                                                        <div *ngIf="radioField.invalid && (radioField.dirty || radioField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                            <div *ngIf="radioField.errors.required">
+                                                                This field is required
+                                                            </div>
+                                                        </div>
+                                                        <div class="alert alert-danger" *ngIf="radioField?.errors?.required != true && (radioField.touched || radioField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                            Value should not be {{item.defaultValue}}
+                                                        </div>
+                                                    </div>
+                                                </ng-container>
+                                                <ng-container *ngIf="item.type == 'slider'">
+                                                    <mat-slider #sliderField="ngModel" required name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.selectedValue"></mat-slider>
+                                                    <div>
+                                                        <div *ngIf="sliderField.invalid && (sliderField.dirty || sliderField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                            <div *ngIf="sliderField.errors.required">
+                                                                This field is required
+                                                            </div>
+                                                        </div>
+                                                        <div class="alert alert-danger" *ngIf="sliderField?.errors?.required != true && (sliderField.touched || sliderField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                            Value should not be {{item.defaultValue}}
+                                                        </div>
+                                                    </div>
+                                                </ng-container>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <!-- <div fxLayout="row">
@@ -194,6 +205,12 @@
                                     </div>
                                 </div> -->
                                 <mat-action-row>
+                                    <div>
+                                        <ng-container *ngFor="let msg of dockerPropertiesErrors">
+                                            <span style="color:#f44336;font-size: 14px;font-weight: 600">{{msg}}</span>
+                                            <br />
+                                        </ng-container>
+                                    </div>
                                     <button style="height: 36px" type="submit" mat-button color="primary">Save</button>
                                     <button mat-button color="warn" (click)="CancelLabelInfo()">Cancel</button>
             
