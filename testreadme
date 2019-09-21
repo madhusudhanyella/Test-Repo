@@ -16,7 +16,7 @@ import { Observable } from "rxjs";
 import { HostListener } from '@angular/core';
 import { MatTabGroup } from '@angular/material/tabs';
 import { MatFormFieldControl } from '@angular/material/form-field';
-import { FormControl } from '@angular/forms';
+import { FormControl, Form, FormBuilder, NgForm } from '@angular/forms';
 //import { setTimeout } from 'timers';
 
 
@@ -464,11 +464,12 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             name: 'Base OS',
             enabled: true,
             options: ['Linux', 'Windows'],
-            disableControldId: '',
-            disableControlValue: '',
+            disableControldId: 'gpu',
+            disableControlValue: 'Windows',
             selectedValue: '',
-            minValue: '',
-            maxValue: '',
+            defaultValue: null,
+            minValue: null,
+            maxValue: null,
             defaultText: '--Please choose an OS--',
             position: 'left'
         },
@@ -478,11 +479,12 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             name: 'NVIDA SDK (GPU)',
             enable: true,
             options: ['Yes', 'No'],
-            disableControldId: 'baseOS',
-            disableControlValue: 'Windows',
+            disableControldId: '',
+            disableControlValue: '',
             selectedValue: '',
-            minValue: '',
-            maxValue: '',
+            defaultValue: null,
+            minValue: null,
+            maxValue: null,
             defaultText: '',
             position: 'left'
         },
@@ -494,9 +496,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             options: [],
             disableControldId: '',
             disableControlValue: '',
-            selectedValue: '',
-            minValue: '',
-            maxValue: '',
+            selectedValue: 0,
+            defaultValue: 0,
+            minValue: null,
+            maxValue: null,
             defaultText: '',
             position: 'right'
         },
@@ -508,8 +511,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             options: [],
             disableControldId: '',
             disableControlValue: '',
-            selectedValue: '',
-            minValue: 1,
+            selectedValue: 0,
+            defaultValue: 0,
+            minValue: 0,
             maxValue: 16,
             defaultText: '',
             position: 'left'
@@ -523,8 +527,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             disableControldId: '',
             disableControlValue: '',
             selectedValue: '',
-            minValue: '',
-            maxValue: '',
+            defaultValue: null,
+            minValue: null,
+            maxValue: null,
             defaultText: '--Please choose memory (GB) --',
             position: 'right'
         },
@@ -536,9 +541,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             options: [],
             disableControldId: '',
             disableControlValue: '',
-            selectedValue: '',
-            minValue: '',
-            maxValue: '',
+            selectedValue: 0,
+            defaultValue: 0,
+            minValue: null,
+            maxValue: null,
             defaultText: '',
             position: 'right'
         },
@@ -551,6 +557,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             disableControldId: '',
             disableControlValue: '',
             selectedValue: '',
+            defaultValue: null,
             minValue: 0,
             maxValue: 60,
             defaultText: '',
@@ -561,12 +568,58 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     LeftDockerProperties = this.DockerProperties.filter(c => c.position === 'left');
     RightDockerProperties = this.DockerProperties.filter(c => c.position === 'right');
 
+    DockerPropertiesCombined = {
+        'left': this.LeftDockerProperties,
+        'right': this.RightDockerProperties
+    }
+
+    DockerPropertiesAlignments = Object.keys(this.DockerPropertiesCombined);
+
+    dockerPropertiesErrors = []
+
+
     constructor(private eleRef: ElementRef, private httpc: HttpClient, public dialog: MatDialog,
         private route: ActivatedRoute, public router: Router, public snackBar: MatSnackBar, private _ngZone: NgZone, private change: ChangeDetectorRef, private matList: MatGridListModule, public errorService: ErrorSnackBarService) {
 
     }
-    Test(t) {
-        console.log(t)
+
+    PropertyChange(item) {
+        if (!!item.disableControldId && !!item.disableControlValue) {
+            this.DockerProperties.forEach(obj => {
+                if (obj.id === item.disableControldId) {
+                    if (item.selectedValue === item.disableControlValue) {
+                        obj.enable = false;
+                    } else {
+                        obj.enable = true;
+                    }
+                }
+            })
+        }
+    }
+
+    SaveDockerProperties(t) {
+        let msgText = "Some Error Exists in Docker Properties Section";
+        this.dockerPropertiesErrors = [];
+        if (t.form.invalid) {
+            this.dockerPropertiesErrors.push(msgText);
+            return;
+        }
+        let isError = false;
+        this.DockerProperties.forEach(p => {
+            if ((p.selectedValue < p.minValue || p.selectedValue > p.maxValue) && p.minValue != null && p.maxValue != null) {
+                isError = true;
+            }
+            if (p.selectedValue == p.defaultValue && p.selectedValue != "") {
+                isError = true;
+            }
+        })
+        if (isError) {
+            this.dockerPropertiesErrors.push(msgText);
+        }
+        if (this.dockerPropertiesErrors.length > 0) return;
+
+        let formData = t.form.value;
+        this.MachineData.Label['dockerProperties'] = formData;
     }
 
     ngOnInit() {
@@ -1109,6 +1162,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         //this.IsDescriptionExpanded = false;
         //this.MachineData.Label.info = this.labelInfo;
         this.BindMachine();
+        this.DockerProperties.forEach(p => {
+            p.selectedValue = p.defaultValue == null ? '' : p.defaultValue;
+            p.enable = true;
+        })
     }
 
     BindInfoData() {
@@ -1279,26 +1336,25 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
 
     //This method is used to save the JSON data
-    SaveJsonData(section) {
-        console.log(this.DockerProperties);
+    SaveJsonData(section, f = null) {
         this.labelInfoErrorMsg = "";
         this.schemStaticInfoErrorMsg = "";
-        this.schemaInErrorMsg = "";
-        this.schemaInErrorMsgs = [];
-        this.schemaOutErrorMsg = "";
-        this.schemaOutErrorMsgs = [];
         this.lblSchemaErrorMessage = "";
         if (section == 1) {
-            this.ValidateLabelSchema();
+            this.SaveDockerProperties(f);
         }
         else if (section == 2) {
-            this.ValidateStaticFieldInfo();
+            this.schemaInErrorMsg = "";
+            this.schemaInErrorMsgs = [];
+            this.schemaOutErrorMsg = "";
+            this.schemaOutErrorMsgs = [];
+            this.ValidateLabelSchema();
         }
         else if (section == 3) {
             this.ValidateLabelInfo();
         }
 
-        if (this.labelInfoErrorMsg == "" && this.schemStaticInfoErrorMsg == "" && this.schemaInErrorMsg == "" && this.schemaInErrorMsgs.length === 0 && this.schemaOutErrorMsg == "" && this.schemaOutErrorMsgs.length === 0 && this.lblSchemaErrorMessage == "") {
+        if (this.dockerPropertiesErrors.length === 0 && this.labelInfoErrorMsg == "" && this.schemStaticInfoErrorMsg == "" && this.schemaInErrorMsg == "" && this.schemaInErrorMsgs.length === 0 && this.schemaOutErrorMsg == "" && this.schemaOutErrorMsgs.length === 0 && this.lblSchemaErrorMessage == "") {
             this.httpc.post("/api/machines/SaveLabelInfo", { MachineID: this.route.snapshot.queryParamMap.get("id"), Label: this.MachineData.Label }).subscribe(
                 (returnData: any) => {
                     this.CancelLabelInfo();
@@ -1479,17 +1535,17 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
 
     //Static Info Section
-    ValidateStaticFieldInfo() {
-        this.schemStaticInfoErrorMsg = "";
-        if (this.MachineData.Label.timeout == "") {
-            this.schemStaticInfoErrorMsg = "Please provide timeout";
-            return;
-        }
+    // ValidateStaticFieldInfo() {
+    //     this.schemStaticInfoErrorMsg = "";
+    //     if (this.MachineData.Label.timeout == "") {
+    //         this.schemStaticInfoErrorMsg = "Please provide timeout";
+    //         return;
+    //     }
 
-        if (parseInt(this.MachineData.Label.timeout) < 5 || parseInt(this.MachineData.Label.timeout) > 60) {
-            this.schemStaticInfoErrorMsg = "Timeout should be between 5 and 60 minutes";
-        }
-    }
+    //     if (parseInt(this.MachineData.Label.timeout) < 5 || parseInt(this.MachineData.Label.timeout) > 60) {
+    //         this.schemStaticInfoErrorMsg = "Timeout should be between 5 and 60 minutes";
+    //     }
+    // }
 
 
     //This method is used to validate the schema section
