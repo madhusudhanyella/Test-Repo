@@ -674,6 +674,8 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
                     this.BindInfoData();
 
+                    this.BindDockerPropertiesData();
+
                     //this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
                     this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
 
@@ -710,6 +712,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.labelInfo = this.MachineData.Label.info;
                     this.schemaInData = this.MachineData.Label["schema-in"];
                     this.schemaOutData = this.MachineData.Label["schema-out"];
+                    this.BindDockerPropertiesData();
                     this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
 
                     //loop through all input keys and init the selected items array with default values in case there are no changes
@@ -1827,6 +1830,16 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
             this.NewMultipleInfo.splice(index, 1);
         }
+    }
+
+    BindDockerPropertiesData() {
+        let dockerPropertiesData = this.MachineData.Label["dockerProperties"];
+        this.DockerProperties.forEach(pr => {
+            let propKeys = Object.keys(dockerPropertiesData);
+            if (propKeys.indexOf(pr.id) !== -1) {
+                pr.selectedValue = dockerPropertiesData[pr.id];
+            }
+        })
     }
 
     //This method is used to bind the Schema Data
