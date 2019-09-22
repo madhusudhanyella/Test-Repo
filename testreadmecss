@@ -175,7 +175,7 @@ body .ui-tabview.ui-tabview-left .ui-tabview-nav li.ui-state-active:hover a {
 }
 
 .docker-properties .docker-properties-column{
-    margin-bottom: 10px !important;
+    margin-bottom: 0px !important;
 }
 
 .docker-properties .docker-properties-name {
