@@ -96,16 +96,16 @@
                                 <div fxLayoutGap="5%" fxLayout="row">
                                     <div *ngFor="let alignment of DockerPropertiesAlignments" class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
                                         <div class="docker-properties-column" fxLayout="row" *ngFor="let item of DockerPropertiesCombined[alignment]">
-                                            <div [ngClass]="item.type == 'radio' ? 'name-radio-top' : item.type == 'slider' ? 'name-slider-top' : ''" class="docker-properties-name" fxLayout="column" fxFlex="40%">
+                                            <div [ngClass]="item.type == 'radio' ? 'name-radio-top' : item.type == 'slider' ? 'name-slider-top' : ''" class="docker-properties-name" fxLayout="column" fxFlex="44%">
                                                 <label>{{item.name}}</label>
                                             </div>
-                                            <div fxLayout="column" fxFlex="60%">
+                                            <div fxLayout="column" fxFlex="56%">
                                                 <ng-container *ngIf="item.type == 'dropdown'">
                                                     <mat-form-field>
                                                         <select (change)="PropertyChange(item)" #dropdownField="ngModel" required disabled="{{item.enable == false}}" matNativeControl name="{{item.id}}" [(ngModel)]="item.selectedValue">
                                                             <option value="">{{item.defaultText}}</option>
                                                             <ng-container *ngFor="let opt of item.options">
-                                                                <option [ngValue]="opt">{{opt}}</option>
+                                                                <option [ngValue]="opt.value">{{opt.text}}</option>
                                                             </ng-container>
                                                         </select>
                                                     </mat-form-field>
@@ -141,7 +141,7 @@
                                                 <ng-container *ngIf="item.type == 'radio'">
                                                     <mat-radio-group disabled="{{item.enable == false}}" #radioField="ngModel" required aria-required="" aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.selectedValue">
                                                         <ng-container *ngFor="let opt of item.options">
-                                                            <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
+                                                            <mat-radio-button [value]="opt.value">{{opt.text}}</mat-radio-button>
                                                         </ng-container>
                                                     </mat-radio-group>
                                                     <div>
@@ -212,7 +212,7 @@
                                         </ng-container>
                                     </div>
                                     <button style="height: 36px" type="submit" mat-button color="primary">Save</button>
-                                    <button mat-button color="warn" (click)="CancelLabelInfo()">Cancel</button>
+                                    <button mat-button color="warn" (click)="CancelDockerProperties()">Cancel</button>
             
                                 </mat-action-row>
                             </form>
