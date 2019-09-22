@@ -457,13 +457,15 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     DicomBaseSubKeyValue = 'Dicom-Series';
 
+    isDataInputOutputSaved = false;
+
     DockerProperties = [
         {
             id: 'baseOS',
             type: 'dropdown',
             name: 'Base OS',
             enabled: true,
-            options: ['Linux', 'Windows'],
+            options: [{ text: 'Linux', value: 'Linux'}, {text:'Windows', value: 'Windows' }],
             disableControldId: 'gpu',
             disableControlValue: 'Windows',
             selectedValue: '',
@@ -478,10 +480,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             type: 'radio',
             name: 'NVIDA SDK (GPU)',
             enable: true,
-            options: ['Yes', 'No'],
+            options: [{text: 'Yes', value: true},{text:'No', value: false}],
             disableControldId: '',
             disableControlValue: '',
-            selectedValue: '',
+            selectedValue: false,
             defaultValue: null,
             minValue: null,
             maxValue: null,
@@ -523,7 +525,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             type: 'dropdown',
             name: 'Minimum Memory (GB)',
             enable: true,
-            options: [4, 8, 16, 32, 64],
+            options: [{text: 4, value: 4}, {text: 8, value: 8}, {text: 16, value: 16}, {text: 32, value: 32}, {text: 64, value: 64}],
             disableControldId: '',
             disableControlValue: '',
             selectedValue: '',
@@ -558,7 +560,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             disableControlValue: '',
             selectedValue: '',
             defaultValue: null,
-            minValue: 0,
+            minValue: 5,
             maxValue: 60,
             defaultText: '',
             position: 'right'
@@ -606,15 +608,22 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         }
         let isError = false;
         this.DockerProperties.forEach(p => {
-            if ((p.selectedValue < p.minValue || p.selectedValue > p.maxValue) && p.minValue != null && p.maxValue != null) {
+            if ((p.selectedValue < p.minValue || p.selectedValue > p.maxValue) && p.minValue !== null && p.maxValue !== null) {
                 isError = true;
             }
-            if (p.selectedValue == p.defaultValue && p.selectedValue != "") {
+            if (p.selectedValue === p.defaultValue && p.selectedValue !== "") {
                 isError = true;
             }
         })
         if (isError) {
             this.dockerPropertiesErrors.push(msgText);
+        }
+        let savedDockerProps = this.MachineData.Label ? (this.MachineData.Label['dockerProperties'] || {}) : {};
+        let savedBaseOS = savedDockerProps['baseOS'] || '';
+        let currentBaseOS = t.form.value['baseOS'];
+        let isBaseOSChanged = savedBaseOS !== '' && currentBaseOS !== '' && savedBaseOS !== currentBaseOS;
+        if (this.isDataInputOutputSaved === true && isBaseOSChanged === true ) {
+            this.dockerPropertiesErrors.push("Base OS can not be changed after saving Data I/O information");
         }
         if (this.dockerPropertiesErrors.length > 0) return;
 
@@ -646,6 +655,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         this.httpc.post("/api/machines/getmachine", payload).subscribe(
             (returnData: any) => {
+
                 Object.assign(this.MachineData, returnData.machine);
                 Object.assign(this.ProductData, returnData.product);
                 this.IsLabelCreatorEnabled = returnData.IsLabelCreatorEnabled;
@@ -675,6 +685,8 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.BindInfoData();
 
                     this.BindDockerPropertiesData();
+
+                    this.SetIsDataInputOutPutSaved();
 
                     //this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
                     this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
@@ -713,6 +725,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.schemaInData = this.MachineData.Label["schema-in"];
                     this.schemaOutData = this.MachineData.Label["schema-out"];
                     this.BindDockerPropertiesData();
+                    this.SetIsDataInputOutPutSaved();
                     this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
 
                     //loop through all input keys and init the selected items array with default values in case there are no changes
@@ -751,6 +764,15 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             error => {
 
             });
+    }
+
+    SetIsDataInputOutPutSaved() {
+        if (this.MachineData.Label && this.MachineData.Label["schema-in"] && Object.keys(this.MachineData.Label["schema-in"]).length > 0) {
+            this.isDataInputOutputSaved = true;
+        }
+        if (this.MachineData.Label && this.MachineData.Label["schema-out"] && Object.keys(this.MachineData.Label["schema-out"]).length > 0) {
+            this.isDataInputOutputSaved = true;
+        }
     }
 
     GetPushCommands() {
@@ -1165,6 +1187,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         //this.IsDescriptionExpanded = false;
         //this.MachineData.Label.info = this.labelInfo;
         this.BindMachine();
+    }
+
+    CancelDockerProperties() {
+        this.dockerPropertiesErrors = [];
         this.DockerProperties.forEach(p => {
             p.selectedValue = p.defaultValue == null ? '' : p.defaultValue;
             p.enable = true;
@@ -1365,6 +1391,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 error => { });
             if (this.Step != 3) {
                 this.Step = this.Step + 1;
+                if (section === 2) {
+                    this.isDataInputOutputSaved = true;
+                }
             }
             //this.IsDescriptionExpanded = true;
         }
