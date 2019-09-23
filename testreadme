@@ -370,8 +370,8 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     //Label Creator section changes
 
     //Information Section
-    infoSectionFields: string[] = ['Product Name', 'Title', 'Author', 'Organization', 'Input Requirements', 'Output Details', 'Link to Instruction for Use', 'Link to Sample Data', 'Release Version', 'Algorithm Overview', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status', 'MFDS Status', 'Algorithm Model Training Date', 'data-source', 'ground-truth', 'training-algorithm', 'Performance', 'CPU Requirement', 'RAM Requirement', 'Estimated Run Time', 'Require Internet Access'];
-    infoSectionFields_copy: string[] = ['Product Name', 'Title', 'Author', 'Organization', 'Input Requirements', 'Output Details', 'Link to Instruction for Use', 'Link to Sample Data', 'Release Version', 'Algorithm Overview', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status', 'MFDS Status', 'Algorithm Model Training Date', 'data-source', 'ground-truth', 'training-algorithm', 'Performance', 'CPU Requirement', 'RAM Requirement', 'Estimated Run Time', 'Require Internet Access'];
+    infoSectionFields: string[] = ['Product Name', 'Title', 'Author', 'Organization', 'Input Requirements', 'Output Details', 'Link to Instruction for Use', 'Link to Sample Data', 'Release Version', 'Algorithm Overview', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status', 'MFDS Status', 'Algorithm Model Training Date', 'data-source', 'ground-truth', 'training-algorithm', 'Performance', 'Require Internet Access'];
+    infoSectionFields_copy: string[] = ['Product Name', 'Title', 'Author', 'Organization', 'Input Requirements', 'Output Details', 'Link to Instruction for Use', 'Link to Sample Data', 'Release Version', 'Algorithm Overview', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status', 'MFDS Status', 'Algorithm Model Training Date', 'data-source', 'ground-truth', 'training-algorithm', 'Performance', 'Require Internet Access'];
     infoSectionFieldsConfig: any = {
         "Product Name": { "Type": ValueType.FreeText, "MaxLength": 128 },
         "Release Version": { "Type": ValueType.FreeText, "MaxLength": 128 },
@@ -381,11 +381,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         "Input Requirements": { "Type": ValueType.FreeText, "MaxLength": 1000 },
         "Output Details": { "Type": ValueType.FreeText, "MaxLength": 1000 },
         "Algorithm Overview": { "Type": ValueType.FreeText, "MaxLength": 1000 },
-        "CPU Requirement": { "Type": ValueType.Slider, "MinValue": 0, "MaxValue": 16, "SliderLabel": "VCPU" },
-        "RAM Requirement": { "Type": ValueType.Slider, "MinValue": 0, "MaxValue": 64, "SliderLabel": "GB" },
-        "Estimated Run Time": {
-            "Type": ValueType.Slider, "MinValue": 2, "MaxValue": 60, "SliderLabel": "min"
-        },
         "Require Internet Access": { "Type": ValueType.BinarySelector, "IsCustomKey": false, "ShowInfoSectionOnValue": ["1"], "AdditionalInfoMaxLength": 1000, "PlaceHolder": "Please explain the requirement" },
         "Link to Instruction for Use": { "Type": ValueType.FreeText, "MaxLength": 1000 },
         "Link to Sample Data ": { "Type": ValueType.FreeText, "MaxLength": 1000 },
@@ -396,7 +391,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         "Algorithm Model Training Date": { "Type": ValueType.FreeText, "IsCustomKey": false, "MaxLength": 128 }
     };
 
-    configKeys: any = ['Product Name', 'Release Version', 'Title', 'Organization', 'CPU Requirement', 'RAM Requirement', 'Estimated Run Time', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status'];
+    configKeys: any = ['Product Name', 'Release Version', 'Title', 'Organization', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status'];
     infoSectionData: any = [];
     SelectedInfoKey: string = '';
     SelectedInfoKeyValue: string = '';
@@ -465,7 +460,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             type: 'dropdown',
             name: 'Base OS',
             enabled: true,
-            options: [{ text: 'Linux', value: 'Linux'}, {text:'Windows', value: 'Windows' }],
+            options: [{ text: 'Linux', value: 'Linux' }, { text: 'Windows', value: 'Windows' }],
             disableControldId: 'gpu',
             disableControlValue: 'Windows',
             selectedValue: '',
@@ -480,7 +475,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             type: 'radio',
             name: 'NVIDA SDK (GPU)',
             enable: true,
-            options: [{text: 'Yes', value: true},{text:'No', value: false}],
+            options: [{ text: 'Yes', value: true }, { text: 'No', value: false }],
             disableControldId: '',
             disableControlValue: '',
             selectedValue: false,
@@ -525,7 +520,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             type: 'dropdown',
             name: 'Minimum Memory (GB)',
             enable: true,
-            options: [{text: 4, value: 4}, {text: 8, value: 8}, {text: 16, value: 16}, {text: 32, value: 32}, {text: 64, value: 64}],
+            options: [{ text: 4, value: 4 }, { text: 8, value: 8 }, { text: 16, value: 16 }, { text: 32, value: 32 }, { text: 64, value: 64 }],
             disableControldId: '',
             disableControlValue: '',
             selectedValue: '',
@@ -618,17 +613,16 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         if (isError) {
             this.dockerPropertiesErrors.push(msgText);
         }
-        let savedDockerProps = this.MachineData.Label ? (this.MachineData.Label['dockerProperties'] || {}) : {};
-        let savedBaseOS = savedDockerProps['baseOS'] || '';
         let currentBaseOS = t.form.value['baseOS'];
-        let isBaseOSChanged = savedBaseOS !== '' && currentBaseOS !== '' && savedBaseOS !== currentBaseOS;
-        if (this.isDataInputOutputSaved === true && isBaseOSChanged === true ) {
-            this.dockerPropertiesErrors.push("Base OS can not be changed after saving Data I/O information");
-        }
         if (this.dockerPropertiesErrors.length > 0) return;
 
         let formData = t.form.value;
         this.MachineData.Label['dockerProperties'] = formData;
+        this.DockerProperties.forEach(pr => {
+            if (pr.id === 'baseOS') {
+                pr.options = pr.options.filter(op => op.value === currentBaseOS);
+            }
+        })
     }
 
     ngOnInit() {
@@ -655,7 +649,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         this.httpc.post("/api/machines/getmachine", payload).subscribe(
             (returnData: any) => {
-
                 Object.assign(this.MachineData, returnData.machine);
                 Object.assign(this.ProductData, returnData.product);
                 this.IsLabelCreatorEnabled = returnData.IsLabelCreatorEnabled;
@@ -1862,11 +1855,14 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
 
     BindDockerPropertiesData() {
-        let dockerPropertiesData = this.MachineData.Label["dockerProperties"];
+        let dockerPropertiesData = this.MachineData.Label ? (this.MachineData.Label["dockerProperties"] || {}) : {};
         this.DockerProperties.forEach(pr => {
             let propKeys = Object.keys(dockerPropertiesData);
             if (propKeys.indexOf(pr.id) !== -1) {
                 pr.selectedValue = dockerPropertiesData[pr.id];
+            }
+            if (pr.id === 'baseOS') {
+                pr.options = pr.options.filter(op => op.value === dockerPropertiesData['baseOS']);
             }
         })
     }
@@ -2329,14 +2325,14 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             return false;
         }
         if (this.customschemaInDicom.ChildSeries) {
-            for (let i=0; i< this.customschemaInDicom.ChildSeries.length; i++) {
+            for (let i = 0; i < this.customschemaInDicom.ChildSeries.length; i++) {
                 if (!patt.test(this.customschemaInDicom.ChildSeries[i].key)) {
                     return false;
                 }
             }
         }
         if (this.customschemaInDicom.ChildMultiphaseSeries) {
-            for (let i=0; i< this.customschemaInDicom.ChildMultiphaseSeries.length; i++) {
+            for (let i = 0; i < this.customschemaInDicom.ChildMultiphaseSeries.length; i++) {
                 if (!patt.test(this.customschemaInDicom.ChildMultiphaseSeries[i].key)) {
                     return false;
                 }
@@ -2348,52 +2344,52 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         }
 
         if (this.customschemaOutDicom.ChildSeries) {
-            for (let i=0; i< this.customschemaOutDicom.ChildSeries.length; i++) {
+            for (let i = 0; i < this.customschemaOutDicom.ChildSeries.length; i++) {
                 if (!patt.test(this.customschemaOutDicom.ChildSeries[i].key)) {
                     return false;
                 }
             }
         }
         if (this.customschemaOutDicom.ChildMultiphaseSeries) {
-            for (var i=0; i< this.customschemaOutDicom.ChildMultiphaseSeries.length; i++) {
+            for (var i = 0; i < this.customschemaOutDicom.ChildMultiphaseSeries.length; i++) {
                 if (!patt.test(this.customschemaOutDicom.ChildMultiphaseSeries[i].key)) {
                     return false;
                 }
             }
         }
 
-        for (let i=0; i< this.customSchemaInDict.length; i++) {
+        for (let i = 0; i < this.customSchemaInDict.length; i++) {
             if (!patt.test(this.customSchemaInDict[i].value)) {
                 return false;
             }
             if (this.customSchemaInDict[i].ChildSeries) {
-                for (let j=0; j< this.customSchemaInDict[i].ChildSeries.length; j++) {
+                for (let j = 0; j < this.customSchemaInDict[i].ChildSeries.length; j++) {
                     if (!patt.test(this.customSchemaInDict[i].ChildSeries[j].key)) {
                         return false;
                     }
                 }
             }
             if (this.customSchemaInDict[i].ChildMultiphaseSeries) {
-                for (let j=0; j< this.customSchemaInDict[i].ChildMultiphaseSeries.length; j++) {
+                for (let j = 0; j < this.customSchemaInDict[i].ChildMultiphaseSeries.length; j++) {
                     if (!patt.test(this.customSchemaInDict[i].ChildMultiphaseSeries[j].key)) {
                         return false;
                     }
                 }
             }
         }
-        for (let i=0; i< this.customSchemaOutDict.length; i++) {
+        for (let i = 0; i < this.customSchemaOutDict.length; i++) {
             if (!patt.test(this.customSchemaOutDict[i].value)) {
                 return false;
             }
             if (this.customSchemaOutDict[i].ChildSeries) {
-                for (let j=0; j< this.customSchemaOutDict[i].ChildSeries.length; j++) {
+                for (let j = 0; j < this.customSchemaOutDict[i].ChildSeries.length; j++) {
                     if (!patt.test(this.customSchemaOutDict[i].ChildSeries[j].key)) {
                         return false;
                     }
                 }
             }
             if (this.customSchemaOutDict[i].ChildMultiphaseSeries) {
-                for (let j=0; j< this.customSchemaOutDict[i].ChildMultiphaseSeries.length; j++) {
+                for (let j = 0; j < this.customSchemaOutDict[i].ChildMultiphaseSeries.length; j++) {
                     if (!patt.test(this.customSchemaOutDict[i].ChildMultiphaseSeries[j].key)) {
                         return false;
                     }
