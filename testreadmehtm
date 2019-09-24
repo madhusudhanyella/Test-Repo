@@ -122,12 +122,15 @@
                                         </ng-container>
                                         <ng-container *ngIf="item.type == 'integer'">
                                             <mat-form-field>
-                                                <input #integerField="ngModel" required min="{{item.minValue}}" max="{{item.maxValue}}" matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.selectedValue" />
+                                                <input #integerField="ngModel" pattern="{{item.pattern}}" required min="{{item.minValue}}" max="{{item.maxValue}}" matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.selectedValue" />
                                             </mat-form-field>
                                             <div>
                                                 <div *ngIf="integerField.invalid && (integerField.dirty || integerField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
                                                     <div *ngIf="integerField.errors.required">
                                                         This field is required
+                                                    </div>
+                                                    <div *ngIf="integerField.errors.pattern">
+                                                        Value should be a whole number
                                                     </div>
                                                 </div>
                                                 <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
@@ -161,12 +164,12 @@
                                         <ng-container *ngIf="item.type == 'slider'">
                                             <mat-slider #sliderField="ngModel" required name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.selectedValue"></mat-slider>
                                             <div>
-                                                <div *ngIf="sliderField.invalid && (sliderField.dirty || sliderField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                <div *ngIf="sliderField.invalid && (sliderField.dirty || sliderField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger slider">
                                                     <div *ngIf="sliderField.errors.required">
                                                         This field is required
                                                     </div>
                                                 </div>
-                                                <div class="alert alert-danger" *ngIf="sliderField?.errors?.required != true && (sliderField.touched || sliderField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                <div class="alert alert-danger slider" *ngIf="sliderField?.errors?.required != true && (sliderField.touched || sliderField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
                                                     Value should not be {{item.defaultValue}}
                                                 </div>
                                             </div>
@@ -1142,7 +1145,7 @@
                                                 <!--(onchange)="{{recipient['AdditionalInfoText']=""}}"-->
                                                 <mat-form-field *ngIf="recipient['IsCustomKey']==false">
 
-                                                    
+
 
                                                     <select matNativeControl [(ngModel)]="recipient['InfoValue']" [ngModelOptions]="{standalone: true}" (change)="ResetAdditionalInfoTextBox(recipient)">
                                                         <option *ngFor="let propOption of infoSectionFieldsConfig[recipient['InfoKey']]['Options']" value="{{propOption}}">{{propOption}}</option>
@@ -1157,9 +1160,9 @@
 
                                                         <!--<input matInput maxlength="{{infoSectionFieldsConfig[recipient['InfoKey']]['AdditionalInfoMaxLength']}}" [(ngModel)]="recipient['AdditionalInfoText']" />-->
                                                     </mat-form-field>
-                                                   
+
                                                 </div>
-                                                
+
                                             </td>
                                             <td *ngIf="recipient['InfoValueType']==7" width="250px">
                                                 <div *ngFor="let item of recipient['InfoValueOptions']; let idx= index">
@@ -1235,9 +1238,9 @@
 
                                                         <!--<input matInput maxlength="{{infoSectionFieldsConfig[recipient['InfoKey']]['AdditionalInfoMaxLength']}}" [(ngModel)]="recipient['AdditionalInfoText']" />-->
                                                     </mat-form-field>
-                                                   
+
                                                 </div>
-                                                
+
                                             </td>
                                             <td width="100px" *ngIf="recipient['InfoValueType']==4">
                                                 <span>{{recipient['SliderMin']}}</span>
@@ -1266,7 +1269,7 @@
                                                 </div>
                                                 <!--(onchange)="{{recipient['AdditionalInfoText']=""}}"-->
                                                 <mat-form-field *ngIf="recipient['IsCustomKey']==false">
-                                                    
+
                                                     <select matNativeControl [(ngModel)]="recipient['InfoValue']" [ngModelOptions]="{standalone: true}" (change)="ResetAdditionalInfoTextBox(recipient)">
                                                         <option *ngFor="let propOption of infoSectionFieldsConfig[recipient['InfoKey']]['Options']" value="{{propOption}}">{{propOption}}</option>
                                                     </select>
@@ -1280,9 +1283,9 @@
 
                                                         <!--<input matInput maxlength="{{infoSectionFieldsConfig[recipient['InfoKey']]['AdditionalInfoMaxLength']}}" [(ngModel)]="recipient['AdditionalInfoText']" />-->
                                                     </mat-form-field>
-                                                   
+
                                                 </div>
-                                                
+
                                             </td>
                                             <td *ngIf="recipient['InfoValueType']==7" width="250px">
                                                 <div *ngFor="let item of recipient['InfoValueOptions']; let idx= index">
@@ -1429,9 +1432,9 @@
                                     <!--<mat-hint align="end">{{infoKeyValue.value.length}} / {{NewInfoKeyValueMaxLength}}</mat-hint>-->
                                 </mat-form-field>
                             </td>
-                            
+
                             <td *ngIf="NewInfoKeyValueType==2" width="200px">
-                                
+
                                 <mat-form-field class="example-full-width" style="width:250px">
                                     <input type="number" matInput maxlength="200" [(ngModel)]="NewInfoKeyValue" />
                                 </mat-form-field>
