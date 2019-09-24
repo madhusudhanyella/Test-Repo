@@ -63,160 +63,163 @@
 
         <mat-tab *ngIf="Mode =='dev' && IsLabelCreatorEnabled==true" label="Label Creator">
             <mat-accordion *ngIf="MachineData.LabelJSON != '' && MachineData.Label != null">
-                    <mat-expansion-panel [expanded]="Step==1" (opened)="Step=1;">
-                            <mat-expansion-panel-header>
-                                <mat-panel-title>
-                                    Docker Properties
-                                </mat-panel-title>
-                            </mat-expansion-panel-header>
-                            <span style="color:red">{{schemStaticInfoErrorMsg}}</span>
-                            <!-- <div id="dvStaticFieldInfo" style="width:100%;">
-                                <table style="margin-top:30px" class="example-full-width" cellspacing="10">
-                                    <tr>
-                                        <td>
-                                            <label>NVidia : </label>
-                                        </td>
-                                        <td>
-                                            <input [checked]="MachineData.Label.nvidia == true  ? true : null" (change)="MachineData.Label.nvidia = !MachineData.Label.nvidia" type="checkbox" class="CheckBox" />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <label>Time Out&nbsp;(in Mins) : </label>
-                                        </td>
-                                        <td>
-                                            <mat-form-field class="example-full-width">
-                                                <input matInput type="number" min="1" max="60" maxlength="4" [(ngModel)]="MachineData.Label.timeout">
+                <mat-expansion-panel [expanded]="Step==1" (opened)="Step=1;">
+                    <mat-expansion-panel-header>
+                        <mat-panel-title>
+                            Docker Properties
+                        </mat-panel-title>
+                    </mat-expansion-panel-header>
+                    <span style="color:red">{{schemStaticInfoErrorMsg}}</span>
+                    <!-- <div id="dvStaticFieldInfo" style="width:100%;">
+                        <table style="margin-top:30px" class="example-full-width" cellspacing="10">
+                            <tr>
+                                <td>
+                                    <label>NVidia : </label>
+                                </td>
+                                <td>
+                                    <input [checked]="MachineData.Label.nvidia == true  ? true : null" (change)="MachineData.Label.nvidia = !MachineData.Label.nvidia" type="checkbox" class="CheckBox" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label>Time Out&nbsp;(in Mins) : </label>
+                                </td>
+                                <td>
+                                    <mat-form-field class="example-full-width">
+                                        <input matInput type="number" min="1" max="60" maxlength="4" [(ngModel)]="MachineData.Label.timeout">
+                                    </mat-form-field>
+                                </td>
+                            </tr>
+                        </table>
+                    </div> -->
+                    <form #dockerPopertiesForm="ngForm" (ngSubmit)="SaveJsonData(1, dockerPopertiesForm)">
+                        <div fxLayoutGap="5%" fxLayout="row">
+                            <div *ngFor="let alignment of DockerPropertiesAlignments" class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
+                                <div class="docker-properties-column" fxLayout="row" *ngFor="let item of DockerPropertiesCombined[alignment]">
+                                    <div [ngClass]="item.type == 'radio' ? 'name-radio-top' : item.type == 'slider' ? 'name-slider-top' : ''" class="docker-properties-name" fxLayout="column" fxFlex="44%">
+                                        <label>{{item.name}}</label>
+                                    </div>
+                                    <div fxLayout="column" fxFlex="56%">
+                                        <ng-container *ngIf="item.type == 'dropdown'">
+                                            <mat-form-field>
+                                                <select (change)="PropertyChange(item)" #dropdownField="ngModel" required disabled="{{item.enable == false}}" matNativeControl name="{{item.id}}" [(ngModel)]="item.selectedValue">
+                                                    <option value="">{{item.defaultText}}</option>
+                                                    <ng-container *ngFor="let opt of item.options">
+                                                        <option [ngValue]="opt.value">{{opt.text}}</option>
+                                                    </ng-container>
+                                                </select>
                                             </mat-form-field>
+                                            <div>
+                                                <div class="alert alert-danger" *ngIf="dropdownField.invalid && (dropdownField.dirty || dropdownField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                    <div *ngIf="dropdownField.errors.required">
+                                                        This field is required
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-danger" *ngIf="dropdownField?.errors?.required != true && (dropdownField.touched || dropdownField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                    Value should not be {{item.defaultValue}}
+                                                </div>
+                                            </div>
+                                        </ng-container>
+                                        <ng-container *ngIf="item.type == 'integer'">
+                                            <mat-form-field>
+                                                <input #integerField="ngModel" required min="{{item.minValue}}" max="{{item.maxValue}}" matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.selectedValue" />
+                                            </mat-form-field>
+                                            <div>
+                                                <div *ngIf="integerField.invalid && (integerField.dirty || integerField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                    <div *ngIf="integerField.errors.required">
+                                                        This field is required
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                    Value should not be {{item.defaultValue}}
+                                                </div>
+                                                <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue != item.defaultValue && (item.selectedValue > item.maxValue || item.selectedValue < item.minValue) && item.maxValue != null && item.minValue != null">
+                                                    Value should be in between {{item.minValue}} and {{item.maxValue}}
+                                                </div>
+                                                <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue != item.defaultValue && (item.selectedValue < item.minValue) && item.minValue != null && item.maxValue == null">
+                                                    Value should not be less than {{item.minValue}}
+                                                </div>
+                                            </div>
+                                        </ng-container>
+                                        <ng-container *ngIf="item.type == 'radio'">
+                                            <mat-radio-group disabled="{{item.enable == false}}" #radioField="ngModel" required aria-required="" aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.selectedValue">
+                                                <ng-container *ngFor="let opt of item.options">
+                                                    <mat-radio-button [value]="opt.value">{{opt.text}}</mat-radio-button>
+                                                </ng-container>
+                                            </mat-radio-group>
+                                            <div>
+                                                <div *ngIf="radioField.invalid && (radioField.dirty || radioField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                    <div *ngIf="radioField.errors.required">
+                                                        This field is required
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-danger" *ngIf="radioField?.errors?.required != true && (radioField.touched || radioField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                    Value should not be {{item.defaultValue}}
+                                                </div>
+                                            </div>
+                                        </ng-container>
+                                        <ng-container *ngIf="item.type == 'slider'">
+                                            <mat-slider #sliderField="ngModel" required name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.selectedValue"></mat-slider>
+                                            <div>
+                                                <div *ngIf="sliderField.invalid && (sliderField.dirty || sliderField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
+                                                    <div *ngIf="sliderField.errors.required">
+                                                        This field is required
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-danger" *ngIf="sliderField?.errors?.required != true && (sliderField.touched || sliderField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
+                                                    Value should not be {{item.defaultValue}}
+                                                </div>
+                                            </div>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- <div fxLayout="row">
+                            <div id="dvStaticFieldInfo" style="width:100%;">
+                                <table style="margin-top:30px" class="example-full-width" cellspacing="10">
+                                    <tr *ngFor="let item of DockerProperties">
+                                        <td>
+                                                <label>{{item.name}}</label>
+                                        </td>
+                                        <td *ngIf="item.type == 'dropdown'">
+                                            <select name="{{item.id}}" [(ngModel)]="item.value">
+                                                <option value="">{{item.defaultText}}</option>
+                                                <ng-container *ngFor="let opt of item.options">
+                                                    <option [ngValue]="opt">{{opt}}</option>
+                                                </ng-container>
+                                            </select>
+                                        </td>
+                                        <td *ngIf="item.type == 'integer'">
+                                            <input name="{{item.id}}" type="number" [(ngModel)]="item.value" />
+                                        </td>
+                                        <td *ngIf="item.type == 'radio'">
+                                            <mat-radio-group aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.value">
+                                                <ng-container *ngFor="let opt of item.options">
+                                                    <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
+                                                </ng-container>
+                                            </mat-radio-group>
+                                        </td>
+                                        <td *ngIf="item.type == 'slider'">
+                                            <mat-slider name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.value"></mat-slider>
                                         </td>
                                     </tr>
                                 </table>
-                            </div> -->
-                            <form #dockerPopertiesForm="ngForm" (ngSubmit)="SaveJsonData(1, dockerPopertiesForm)">
-                                <div fxLayoutGap="5%" fxLayout="row">
-                                    <div *ngFor="let alignment of DockerPropertiesAlignments" class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
-                                        <div class="docker-properties-column" fxLayout="row" *ngFor="let item of DockerPropertiesCombined[alignment]">
-                                            <div [ngClass]="item.type == 'radio' ? 'name-radio-top' : item.type == 'slider' ? 'name-slider-top' : ''" class="docker-properties-name" fxLayout="column" fxFlex="44%">
-                                                <label>{{item.name}}</label>
-                                            </div>
-                                            <div fxLayout="column" fxFlex="56%">
-                                                <ng-container *ngIf="item.type == 'dropdown'">
-                                                    <mat-form-field>
-                                                        <select (change)="PropertyChange(item)" #dropdownField="ngModel" required disabled="{{item.enable == false}}" matNativeControl name="{{item.id}}" [(ngModel)]="item.selectedValue">
-                                                            <option value="">{{item.defaultText}}</option>
-                                                            <ng-container *ngFor="let opt of item.options">
-                                                                <option [ngValue]="opt.value">{{opt.text}}</option>
-                                                            </ng-container>
-                                                        </select>
-                                                    </mat-form-field>
-                                                    <div>
-                                                        <div class="alert alert-danger" *ngIf="dropdownField.invalid && (dropdownField.dirty || dropdownField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
-                                                            <div *ngIf="dropdownField.errors.required">
-                                                                This field is required
-                                                            </div>
-                                                        </div>
-                                                        <div class="alert alert-danger" *ngIf="dropdownField?.errors?.required != true && (dropdownField.touched || dropdownField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
-                                                            Value should not be {{item.defaultValue}}
-                                                        </div>
-                                                    </div>
-                                                </ng-container>
-                                                <ng-container *ngIf="item.type == 'integer'">
-                                                    <mat-form-field>
-                                                        <input #integerField="ngModel" required min="{{item.minValue}}" max="{{item.maxValue}}" matNativeControl name="{{item.id}}" type="number" [(ngModel)]="item.selectedValue" />
-                                                    </mat-form-field>
-                                                    <div>
-                                                        <div *ngIf="integerField.invalid && (integerField.dirty || integerField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger" >
-                                                            <div *ngIf="integerField.errors.required">
-                                                                This field is required
-                                                            </div>
-                                                        </div>
-                                                        <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
-                                                            Value should not be {{item.defaultValue}}
-                                                        </div>
-                                                        <div class="alert alert-danger" *ngIf="integerField?.errors?.required != true && (integerField.touched || integerField.dirty || dockerPopertiesForm.submitted) && item.selectedValue != item.defaultValue && (item.selectedValue > item.maxValue || item.selectedValue < item.minValue) && item.maxValue != null && item.minValue != null">
-                                                            Value should be in between {{item.minValue}} and {{item.maxValue}}
-                                                        </div>
-                                                    </div>
-                                                </ng-container>
-                                                <ng-container *ngIf="item.type == 'radio'">
-                                                    <mat-radio-group disabled="{{item.enable == false}}" #radioField="ngModel" required aria-required="" aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.selectedValue">
-                                                        <ng-container *ngFor="let opt of item.options">
-                                                            <mat-radio-button [value]="opt.value">{{opt.text}}</mat-radio-button>
-                                                        </ng-container>
-                                                    </mat-radio-group>
-                                                    <div>
-                                                        <div *ngIf="radioField.invalid && (radioField.dirty || radioField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
-                                                            <div *ngIf="radioField.errors.required">
-                                                                This field is required
-                                                            </div>
-                                                        </div>
-                                                        <div class="alert alert-danger" *ngIf="radioField?.errors?.required != true && (radioField.touched || radioField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
-                                                            Value should not be {{item.defaultValue}}
-                                                        </div>
-                                                    </div>
-                                                </ng-container>
-                                                <ng-container *ngIf="item.type == 'slider'">
-                                                    <mat-slider #sliderField="ngModel" required name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.selectedValue"></mat-slider>
-                                                    <div>
-                                                        <div *ngIf="sliderField.invalid && (sliderField.dirty || sliderField.touched || dockerPopertiesForm.submitted)" class="alert alert-danger">
-                                                            <div *ngIf="sliderField.errors.required">
-                                                                This field is required
-                                                            </div>
-                                                        </div>
-                                                        <div class="alert alert-danger" *ngIf="sliderField?.errors?.required != true && (sliderField.touched || sliderField.dirty || dockerPopertiesForm.submitted) && item.selectedValue == item.defaultValue">
-                                                            Value should not be {{item.defaultValue}}
-                                                        </div>
-                                                    </div>
-                                                </ng-container>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- <div fxLayout="row">
-                                    <div id="dvStaticFieldInfo" style="width:100%;">
-                                        <table style="margin-top:30px" class="example-full-width" cellspacing="10">
-                                            <tr *ngFor="let item of DockerProperties">
-                                                <td>
-                                                        <label>{{item.name}}</label>
-                                                </td>
-                                                <td *ngIf="item.type == 'dropdown'">
-                                                    <select name="{{item.id}}" [(ngModel)]="item.value">
-                                                        <option value="">{{item.defaultText}}</option>
-                                                        <ng-container *ngFor="let opt of item.options">
-                                                            <option [ngValue]="opt">{{opt}}</option>
-                                                        </ng-container>
-                                                    </select>
-                                                </td>
-                                                <td *ngIf="item.type == 'integer'">
-                                                    <input name="{{item.id}}" type="number" [(ngModel)]="item.value" />
-                                                </td>
-                                                <td *ngIf="item.type == 'radio'">
-                                                    <mat-radio-group aria-label="item.defaultText" name="{{item.id}}" [(ngModel)]="item.value">
-                                                        <ng-container *ngFor="let opt of item.options">
-                                                            <mat-radio-button [value]="opt">{{opt}}</mat-radio-button>
-                                                        </ng-container>
-                                                    </mat-radio-group>
-                                                </td>
-                                                <td *ngIf="item.type == 'slider'">
-                                                    <mat-slider name="{{item.id}}" thumbLabel [displayWith]="item.defaultText" tickInterval="1" min="{{item.minValue}}" max="{{item.maxValue}}" [(ngModel)]="item.value"></mat-slider>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div> -->
-                                <mat-action-row>
-                                    <div>
-                                        <ng-container *ngFor="let msg of dockerPropertiesErrors">
-                                            <span style="color:#f44336;font-size: 14px;font-weight: 600">{{msg}}</span>
-                                            <br />
-                                        </ng-container>
-                                    </div>
-                                    <button style="height: 36px" type="submit" mat-button color="primary">Save</button>
-                                    <button mat-button color="warn" (click)="CancelDockerProperties()">Cancel</button>
-            
-                                </mat-action-row>
-                            </form>
-                     </mat-expansion-panel>
+                            </div>
+                        </div> -->
+                        <mat-action-row>
+                            <div>
+                                <ng-container *ngFor="let msg of dockerPropertiesErrors">
+                                    <span style="color:#f44336;font-size: 14px;font-weight: 600">{{msg}}</span>
+                                    <br />
+                                </ng-container>
+                            </div>
+                            <button style="height: 36px" type="submit" mat-button color="primary">Save</button>
+                            <button type="button" mat-button color="warn" (click)="CancelDockerProperties(dockerPopertiesForm)">Cancel</button>
+
+                        </mat-action-row>
+                    </form>
+                </mat-expansion-panel>
 
 
 
@@ -252,8 +255,8 @@
                                             <td style="padding:5px;padding-top:10px;width:65%">
                                                 <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                     <input matInput (change)="DataChange()" placeholder="Key"
-                                                            [(ngModel)]="customschemaInDicom.value" #name="ngModel" required maxlength="100"
-                                                            pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" [ngModelOptions]="{standalone: true}">
+                                                           [(ngModel)]="customschemaInDicom.value" #name="ngModel" required maxlength="100"
+                                                           pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" [ngModelOptions]="{standalone: true}">
                                                 </mat-form-field>
                                                 <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)" class="alert alert-danger">
 
@@ -273,7 +276,7 @@
                                             </td>
                                             <td style="width: 10%" class="vertical-align-close">
                                                 <mat-icon class="pointer mr-3" style="font-size:20px;float:right"
-                                                            (click)="DeleteDicomType('I')" matTooltip="Delete Key">close</mat-icon>
+                                                          (click)="DeleteDicomType('I')" matTooltip="Delete Key">close</mat-icon>
                                             </td>
                                         </tr>
                                         <tr *ngIf="SelectedSchemaInDicomType!='' && schemaInConfig[customschemaInDicom.key]['IsAdditionalInfoNeeded']==true">
@@ -282,9 +285,9 @@
                                                     <mat-form-field class="example-full-width CustomControl"
                                                                     style="width:448px;height:50px;margin-bottom:20px">
                                                         <textarea (change)="DataChange()" placeholder="Please enter description" rows="2"
-                                                                    cols="25" matInput #additionalInfo maxlength="286"
-                                                                    [(ngModel)]="customschemaInDicom['AdditionalInfo']"
-                                                                    [ngModelOptions]="{standalone: true}"></textarea>
+                                                                  cols="25" matInput #additionalInfo maxlength="286"
+                                                                  [(ngModel)]="customschemaInDicom['AdditionalInfo']"
+                                                                  [ngModelOptions]="{standalone: true}"></textarea>
                                                         <mat-hint align="end">{{additionalInfo.value.length}} / 286</mat-hint>
                                                     </mat-form-field>
                                                 </div>
@@ -313,12 +316,12 @@
                                                         <td style="width: 75%">
                                                             <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                                 <input required pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" (change)="DataChange()" matInput
-                                                                        placeholder="{{schemaInConfig[customschemaInDicom.key]['ChildSeriesPlaceholder']}}"
-                                                                        maxlength="100" [(ngModel)]="child.key" #name="ngModel"
-                                                                        [ngModelOptions]="{standalone: true}">
+                                                                       placeholder="{{schemaInConfig[customschemaInDicom.key]['ChildSeriesPlaceholder']}}"
+                                                                       maxlength="100" [(ngModel)]="child.key" #name="ngModel"
+                                                                       [ngModelOptions]="{standalone: true}">
                                                             </mat-form-field>
                                                             <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Sub Key is required.
                                                                 </div>
@@ -332,15 +335,15 @@
                                                             <br />
                                                             <mat-form-field class="example-full-width CustomControl" style="width:100%">
                                                                 <textarea (change)="DataChange()" placeholder="Please enter description"
-                                                                            rows="2" cols="20" matInput #additionalInfo maxlength="100"
-                                                                            [(ngModel)]="child.value"
-                                                                            [ngModelOptions]="{standalone: true}"></textarea>
+                                                                          rows="2" cols="20" matInput #additionalInfo maxlength="100"
+                                                                          [(ngModel)]="child.value"
+                                                                          [ngModelOptions]="{standalone: true}"></textarea>
                                                                 <mat-hint align="end">{{additionalInfo.value.length}} / 100</mat-hint>
                                                             </mat-form-field>
                                                         </td>
                                                         <td style="width: 20%" class="vertical-align-child-close">
                                                             <mat-icon class="pointer mr-3 ChildDelete" style="font-size:20px;"
-                                                                        (click)="DeleteChildSeriesDicom(j,'I')" matTooltip="Delete Child Key">
+                                                                      (click)="DeleteChildSeriesDicom(j,'I')" matTooltip="Delete Child Key">
                                                                 close
                                                             </mat-icon>
                                                         </td>
@@ -351,11 +354,11 @@
                                                         <td style="width: 75%">
                                                             <mat-form-field style="width:100%;height: 40px;">
                                                                 <input required pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" (change)="DataChange()" matInput placeholder="Multi_Phase key"
-                                                                        maxlength="20" [(ngModel)]="child.key" #name="ngModel"
-                                                                        [ngModelOptions]="{standalone: true}">
+                                                                       maxlength="20" [(ngModel)]="child.key" #name="ngModel"
+                                                                       [ngModelOptions]="{standalone: true}">
                                                             </mat-form-field>
                                                             <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Sub Key is required.
                                                                 </div>
@@ -369,16 +372,16 @@
                                                             <br />
                                                             <mat-form-field class="example-full-width CustomControl" style="width:100%">
                                                                 <textarea (change)="DataChange()" placeholder="Please enter description"
-                                                                            rows="2" cols="20" matInput #additionalInfo maxlength="100"
-                                                                            [(ngModel)]="child.value"
-                                                                            [ngModelOptions]="{standalone: true}"></textarea>
+                                                                          rows="2" cols="20" matInput #additionalInfo maxlength="100"
+                                                                          [(ngModel)]="child.value"
+                                                                          [ngModelOptions]="{standalone: true}"></textarea>
                                                                 <mat-hint align="end">{{additionalInfo.value.length}} / 100</mat-hint>
                                                             </mat-form-field>
                                                         </td>
                                                         <td style="width: 20%" class="vertical-align-child-close">
                                                             <mat-icon class="pointer mr-3 ChildDelete" style="font-size:20px;"
-                                                                        (click)="DeleteChildMultiphaseSeriesDicom(j,'I')"
-                                                                        matTooltip="Delete Child Key">
+                                                                      (click)="DeleteChildMultiphaseSeriesDicom(j,'I')"
+                                                                      matTooltip="Delete Child Key">
                                                                 close
                                                             </mat-icon>
                                                         </td>
@@ -409,13 +412,13 @@
                                         </tr>
                                     </table>
                                     <table *ngFor="let item of customSchemaInDict; let i = index" class="example-full-width SchemaTable"
-                                            cellspacing="10">
+                                           cellspacing="10">
                                         <tr>
                                             <td style="padding:5px;padding-top:10px;width:65%">
                                                 <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                     <input matInput (change)="DataChange()" placeholder="Key" [(ngModel)]="item.value"
-                                                            [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
-                                                            pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
+                                                           [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
+                                                           pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
                                                 </mat-form-field>
                                                 <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)" class="alert alert-danger">
                                                     <div *ngIf="name.errors.required">
@@ -434,7 +437,7 @@
                                             </td>
                                             <td style="width: 10%" class="vertical-align-close">
                                                 <mat-icon class="pointer mr-3" style="font-size:20px;float:right"
-                                                            (click)="DeleteDynamicSchemaKey('schema-in',i,item.value,'NP')" matTooltip="Delete Key">
+                                                          (click)="DeleteDynamicSchemaKey('schema-in',i,item.value,'NP')" matTooltip="Delete Key">
                                                     close
                                                 </mat-icon>
                                             </td>
@@ -445,9 +448,9 @@
                                                     <mat-form-field class="example-full-width CustomControl"
                                                                     style="width:448px;height:50px;margin-bottom:20px">
                                                         <textarea (change)="DataChange()" placeholder="Please enter description" rows="2"
-                                                                    cols="25" matInput #additionalInfo maxlength="286"
-                                                                    [(ngModel)]="item['AdditionalInfo']"
-                                                                    [ngModelOptions]="{standalone: true}"></textarea>
+                                                                  cols="25" matInput #additionalInfo maxlength="286"
+                                                                  [(ngModel)]="item['AdditionalInfo']"
+                                                                  [ngModelOptions]="{standalone: true}"></textarea>
                                                         <mat-hint align="end">{{additionalInfo.value.length}} / 286</mat-hint>
                                                     </mat-form-field>
                                                 </div>
@@ -463,11 +466,11 @@
                                                         <td>
                                                             <mat-form-field class="example-full-width" style="width:100px">
                                                                 <input matInput (change)="DataChange()" [(ngModel)]="item['DefaultValue']"
-                                                                        [ngModelOptions]="{standalone: true}" #name="ngModel" required
-                                                                        maxlength="200" pattern="[-+]?\d*$">
+                                                                       [ngModelOptions]="{standalone: true}" #name="ngModel" required
+                                                                       maxlength="200" pattern="[-+]?\d*$">
                                                             </mat-form-field>
                                                             <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Default Value is required.
                                                                 </div>
@@ -488,11 +491,11 @@
                                                         <td>
                                                             <mat-form-field class="example-full-width" style="width:100px">
                                                                 <input matInput (change)="DataChange()" #name="ngModel"
-                                                                        [ngModelOptions]="{standalone: true}" required maxlength="10"
-                                                                        pattern="[-+]?\d*$" [(ngModel)]="item['MinValue']">
+                                                                       [ngModelOptions]="{standalone: true}" required maxlength="10"
+                                                                       pattern="[-+]?\d*$" [(ngModel)]="item['MinValue']">
                                                             </mat-form-field>
                                                             <div *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Minimum Value is required.
                                                                 </div>
@@ -514,11 +517,11 @@
                                                         <td>
                                                             <mat-form-field class="example-full-width" style="width:100px">
                                                                 <input matInput (change)="DataChange()" [(ngModel)]="item['MaxValue']"
-                                                                        [ngModelOptions]="{standalone: true}" #name="ngModel" required
-                                                                        maxlength="10" pattern="[-+]?\d*$">
+                                                                       [ngModelOptions]="{standalone: true}" #name="ngModel" required
+                                                                       maxlength="10" pattern="[-+]?\d*$">
                                                             </mat-form-field>
                                                             <div *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Maximum Value is required.
                                                                 </div>
@@ -539,11 +542,11 @@
                                                         <td>
                                                             <mat-form-field class="example-full-width" style="width:100px">
                                                                 <input matInput (change)="DataChange()" [(ngModel)]="item['MaxLength']"
-                                                                        [ngModelOptions]="{standalone: true}" required maxlength="10"
-                                                                        pattern="[1-9]\d*$">
+                                                                       [ngModelOptions]="{standalone: true}" required maxlength="10"
+                                                                       pattern="[1-9]\d*$">
                                                             </mat-form-field>
                                                             <div *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Maximum Length is required.
                                                                 </div>
@@ -583,13 +586,13 @@
                                                         <td style="width: 75%">
                                                             <mat-form-field class="example-full-width" style="width:90%;height:40px">
                                                                 <input (change)="DataChange()" matInput
-                                                                        placeholder="{{schemaInConfig[item.key]['ChildSeriesPlaceholder']}}"
-                                                                        [(ngModel)]="child.key"
-                                                                        [ngModelOptions]="{standalone: true}" #name="ngModel" required
-                                                                        maxlength="100" pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
+                                                                       placeholder="{{schemaInConfig[item.key]['ChildSeriesPlaceholder']}}"
+                                                                       [(ngModel)]="child.key"
+                                                                       [ngModelOptions]="{standalone: true}" #name="ngModel" required
+                                                                       maxlength="100" pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
                                                             </mat-form-field>
                                                             <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Sub Key is required.
                                                                 </div>
@@ -603,9 +606,9 @@
                                                             <br />
                                                             <mat-form-field class="example-full-width CustomControl" style="width:240px">
                                                                 <textarea (change)="DataChange()" placeholder="Please enter description"
-                                                                            rows="2" cols="20" matInput #additionalInfo maxlength="100"
-                                                                            [(ngModel)]="child.value"
-                                                                            [ngModelOptions]="{standalone: true}"></textarea>
+                                                                          rows="2" cols="20" matInput #additionalInfo maxlength="100"
+                                                                          [(ngModel)]="child.value"
+                                                                          [ngModelOptions]="{standalone: true}"></textarea>
                                                                 <mat-hint align="end">{{additionalInfo.value.length}} / 100</mat-hint>
                                                             </mat-form-field>
                                                             <table>
@@ -618,13 +621,13 @@
                                                                     <td>
                                                                         <mat-form-field class="example-full-width" style="width:100px">
                                                                             <input matInput (change)="DataChange()" maxlength="200"
-                                                                                    [(ngModel)]="child['DefaultValue']"
-                                                                                    [ngModelOptions]="{standalone: true}"
-                                                                                    #name="ngModel"
-                                                                                    required pattern="[-+]?\d*$">
+                                                                                   [(ngModel)]="child['DefaultValue']"
+                                                                                   [ngModelOptions]="{standalone: true}"
+                                                                                   #name="ngModel"
+                                                                                   required pattern="[-+]?\d*$">
                                                                         </mat-form-field>
                                                                         <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                                class="alert alert-danger">
+                                                                             class="alert alert-danger">
                                                                             <div *ngIf="name.errors.required">
                                                                                 Default Value is required.
                                                                             </div>
@@ -645,12 +648,12 @@
                                                                     <td>
                                                                         <mat-form-field class="example-full-width" style="width:100px">
                                                                             <input matInput (change)="DataChange()"
-                                                                                    [(ngModel)]="child['MinValue']"
-                                                                                    [ngModelOptions]="{standalone: true}" #name="ngModel"
-                                                                                    required maxlength="10" pattern="[-+]?\d*$">
+                                                                                   [(ngModel)]="child['MinValue']"
+                                                                                   [ngModelOptions]="{standalone: true}" #name="ngModel"
+                                                                                   required maxlength="10" pattern="[-+]?\d*$">
                                                                         </mat-form-field>
                                                                         <div *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                                class="alert alert-danger">
+                                                                             class="alert alert-danger">
                                                                             <div *ngIf="name.errors.required">
                                                                                 Minimum Value is required.
                                                                             </div>
@@ -672,13 +675,13 @@
                                                                     <td>
                                                                         <mat-form-field class="example-full-width" style="width:100px">
                                                                             <input matInput (change)="DataChange()"
-                                                                                    [(ngModel)]="child['MaxValue']"
-                                                                                    [ngModelOptions]="{standalone: true}"
-                                                                                    #name="ngModel"
-                                                                                    required maxlength="100" pattern="[-+]?\d*$">
+                                                                                   [(ngModel)]="child['MaxValue']"
+                                                                                   [ngModelOptions]="{standalone: true}"
+                                                                                   #name="ngModel"
+                                                                                   required maxlength="100" pattern="[-+]?\d*$">
                                                                         </mat-form-field>
                                                                         <div *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                                class="alert alert-danger">
+                                                                             class="alert alert-danger">
                                                                             <div *ngIf="name.errors.required">
                                                                                 Max Value is required.
                                                                             </div>
@@ -701,12 +704,12 @@
                                                                     <td>
                                                                         <mat-form-field class="example-full-width" style="width:100px">
                                                                             <input matInput (change)="DataChange()"
-                                                                                    [(ngModel)]="child['MaxLength']"
-                                                                                    [ngModelOptions]="{standalone: true}" #name="ngModel"
-                                                                                    required maxlength="100" pattern="[1-9]\d*$">
+                                                                                   [(ngModel)]="child['MaxLength']"
+                                                                                   [ngModelOptions]="{standalone: true}" #name="ngModel"
+                                                                                   required maxlength="100" pattern="[1-9]\d*$">
                                                                         </mat-form-field>
                                                                         <div *ngIf="name.invalid && (name.dirty || name.touched)"
-                                                                                class="alert alert-danger">
+                                                                             class="alert alert-danger">
                                                                             <div *ngIf="name.errors.required">
                                                                                 Max Length is required.
                                                                             </div>
@@ -724,8 +727,8 @@
                                                         </td>
                                                         <td style="vertical-align:top;padding-top:65px;width: 20%">
                                                             <mat-icon class="pointer mr-3 ChildDelete" style="font-size:20px;"
-                                                                        (click)="DeleteChildSeries('schema-in',i,j,'U')"
-                                                                        matTooltip="Delete Child Key">
+                                                                      (click)="DeleteChildSeries('schema-in',i,j,'U')"
+                                                                      matTooltip="Delete Child Key">
                                                                 close
                                                             </mat-icon>
                                                         </td>
@@ -736,22 +739,22 @@
                                                         <td style="width: 75%">
                                                             <mat-form-field class="example-full-width" style="width:90%;height:40px">
                                                                 <input (change)="DataChange()" matInput placeholder="Multi_Phase key"
-                                                                        maxlength="20" [(ngModel)]="child.key">
+                                                                       maxlength="20" [(ngModel)]="child.key">
                                                             </mat-form-field>
 
                                                             <br />
                                                             <mat-form-field class="example-full-width CustomControl" style="width:240px">
                                                                 <textarea (change)="DataChange()" placeholder="Please enter description"
-                                                                            rows="2" cols="20" matInput #additionalInfo maxlength="100"
-                                                                            [(ngModel)]="child.value"
-                                                                            [ngModelOptions]="{standalone: true}"></textarea>
+                                                                          rows="2" cols="20" matInput #additionalInfo maxlength="100"
+                                                                          [(ngModel)]="child.value"
+                                                                          [ngModelOptions]="{standalone: true}"></textarea>
                                                                 <mat-hint align="end">{{additionalInfo.value.length}} / 100</mat-hint>
                                                             </mat-form-field>
                                                         </td>
                                                         <td class="vertical-align-child-close" style="width: 20%">
                                                             <mat-icon class="pointer mr-3 ChildDelete" style="font-size:20px;"
-                                                                        (click)="DeleteChildMultiphaseSeries('schema-in',i,j,'U')"
-                                                                        matTooltip="Delete Child Key">close</mat-icon>
+                                                                      (click)="DeleteChildMultiphaseSeries('schema-in',i,j,'U')"
+                                                                      matTooltip="Delete Child Key">close</mat-icon>
                                                         </td>
                                                     </tr>
                                                 </table>
@@ -784,8 +787,8 @@
                                             <td style="padding:5px;padding-top:10px;width:65%">
                                                 <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                     <input matInput (change)="DataChange()" placeholder="Key" maxlength="200"
-                                                            [(ngModel)]="customschemaOutDicom.value" #name="ngModel" required
-                                                            pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" [ngModelOptions]="{standalone: true}">
+                                                           [(ngModel)]="customschemaOutDicom.value" #name="ngModel" required
+                                                           pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" [ngModelOptions]="{standalone: true}">
                                                 </mat-form-field>
                                                 <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)" class="alert alert-danger">
                                                     <div *ngIf="name.errors.required">
@@ -804,7 +807,7 @@
                                             </td>
                                             <td style="width: 10%" class="vertical-align-close">
                                                 <mat-icon class="pointer mr-3" style="font-size:20px;float:right"
-                                                            (click)="DeleteDicomType('O')" matTooltip="Delete Key">close</mat-icon>
+                                                          (click)="DeleteDicomType('O')" matTooltip="Delete Key">close</mat-icon>
                                             </td>
                                         </tr>
                                         <tr *ngIf="SelectedSchemaOutDicomType!='' && schemaOutConfig[customschemaOutDicom.key]['IsAdditionalInfoNeeded']==true">
@@ -813,9 +816,9 @@
                                                     <mat-form-field class="example-full-width CustomControl"
                                                                     style="width:448px;height:50px;margin-bottom:20px">
                                                         <textarea (change)="DataChange()" placeholder="Please enter description" rows="2"
-                                                                    cols="25" matInput #additionalInfo maxlength="286"
-                                                                    [(ngModel)]="customschemaOutDicom['AdditionalInfo']"
-                                                                    [ngModelOptions]="{standalone: true}"></textarea>
+                                                                  cols="25" matInput #additionalInfo maxlength="286"
+                                                                  [(ngModel)]="customschemaOutDicom['AdditionalInfo']"
+                                                                  [ngModelOptions]="{standalone: true}"></textarea>
                                                         <mat-hint align="end">{{additionalInfo.value.length}} / 286</mat-hint>
                                                     </mat-form-field>
                                                 </div>
@@ -839,12 +842,12 @@
                                                         <td style="width: 75%">
                                                             <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                                 <input required pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" (change)="DataChange()" matInput
-                                                                        placeholder="{{schemaOutConfig[customschemaOutDicom.key]['ChildSeriesPlaceholder']}}"
-                                                                        maxlength="100" [(ngModel)]="child.key" #name="ngModel"
-                                                                        [ngModelOptions]="{standalone: true}">
+                                                                       placeholder="{{schemaOutConfig[customschemaOutDicom.key]['ChildSeriesPlaceholder']}}"
+                                                                       maxlength="100" [(ngModel)]="child.key" #name="ngModel"
+                                                                       [ngModelOptions]="{standalone: true}">
                                                             </mat-form-field>
                                                             <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Sub Key is required.
                                                                 </div>
@@ -858,15 +861,15 @@
                                                             <br />
                                                             <mat-form-field class="example-full-width CustomControl" style="width:100%">
                                                                 <textarea (change)="DataChange()" placeholder="Please enter description"
-                                                                            rows="2" cols="20" matInput #additionalInfo maxlength="100"
-                                                                            [(ngModel)]="child.value"
-                                                                            [ngModelOptions]="{standalone: true}"></textarea>
+                                                                          rows="2" cols="20" matInput #additionalInfo maxlength="100"
+                                                                          [(ngModel)]="child.value"
+                                                                          [ngModelOptions]="{standalone: true}"></textarea>
                                                                 <mat-hint align="end">{{additionalInfo.value.length}} / 100</mat-hint>
                                                             </mat-form-field>
                                                         </td>
                                                         <td style="width: 20%" class="vertical-align-child-close">
                                                             <mat-icon class="pointer mr-3 ChildDelete" style="font-size:20px;"
-                                                                        (click)="DeleteChildSeriesDicom(j,'O')" matTooltip="Delete Child Key">
+                                                                      (click)="DeleteChildSeriesDicom(j,'O')" matTooltip="Delete Child Key">
                                                                 close
                                                             </mat-icon>
                                                         </td>
@@ -894,13 +897,13 @@
                                         </tr>
                                     </table>
                                     <table *ngFor="let item of customSchemaOutDict; let i = index" class="example-full-width SchemaTable"
-                                            cellspacing="10">
+                                           cellspacing="10">
                                         <tr>
                                             <td style="padding:5px;padding-top:10px;width:65%">
                                                 <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                     <input matInput (change)="DataChange()" placeholder="Key" [(ngModel)]="item.value"
-                                                            [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
-                                                            pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
+                                                           [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
+                                                           pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
                                                 </mat-form-field>
                                                 <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)" class="alert alert-danger">
                                                     <div *ngIf="name.errors.required">
@@ -919,8 +922,8 @@
                                             </td>
                                             <td style="width: 10%" class="vertical-align-close">
                                                 <mat-icon class="pointer mr-3" style="font-size:20px;float:right"
-                                                            (click)="DeleteDynamicSchemaKey('schema-out',i,item.value,'NP')"
-                                                            matTooltip="Delete Key">
+                                                          (click)="DeleteDynamicSchemaKey('schema-out',i,item.value,'NP')"
+                                                          matTooltip="Delete Key">
                                                     close
                                                 </mat-icon>
                                             </td>
@@ -943,9 +946,9 @@
                                                     <mat-form-field class="example-full-width CustomControl"
                                                                     style="width:448px;height:50px;margin-bottom:20px">
                                                         <textarea (change)="DataChange()" placeholder="Please enter description" rows="2"
-                                                                    cols="25" matInput #additionalInfo maxlength="286"
-                                                                    [(ngModel)]="item['AdditionalInfo']"
-                                                                    [ngModelOptions]="{standalone: true}"></textarea>
+                                                                  cols="25" matInput #additionalInfo maxlength="286"
+                                                                  [(ngModel)]="item['AdditionalInfo']"
+                                                                  [ngModelOptions]="{standalone: true}"></textarea>
                                                         <mat-hint align="end">{{additionalInfo.value.length}} / 286</mat-hint>
                                                     </mat-form-field>
                                                 </div>
@@ -970,13 +973,13 @@
                                         </tr>
                                     </table>
                                     <table *ngFor="let item of customSchemaOutFindings; let i = index"
-                                            class="example-full-width SchemaTable" cellspacing="10">
+                                           class="example-full-width SchemaTable" cellspacing="10">
                                         <tr>
                                             <td style="padding:5px;padding-top:10px;width:65%">
                                                 <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                     <input matInput (change)="DataChange()" placeholder="Key" [(ngModel)]="item.value"
-                                                            [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
-                                                            pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
+                                                           [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
+                                                           pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
                                                 </mat-form-field>
                                                 <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)" class="alert alert-danger">
                                                     <div *ngIf="name.errors.required">
@@ -995,8 +998,8 @@
                                             </td>
                                             <td style="width: 10%" class="vertical-align-close">
                                                 <mat-icon class="pointer mr-3" style="font-size:20px;float:right"
-                                                            (click)="DeleteDynamicSchemaKey('schema-out',i,item.value,'SOF')"
-                                                            matTooltip="Delete Key">
+                                                          (click)="DeleteDynamicSchemaKey('schema-out',i,item.value,'SOF')"
+                                                          matTooltip="Delete Key">
                                                     close
                                                 </mat-icon>
                                             </td>
@@ -1007,9 +1010,9 @@
                                                     <mat-form-field class="example-full-width CustomControl"
                                                                     style="width:448px;height:50px;margin-bottom:20px">
                                                         <textarea (change)="DataChange()" placeholder="Please enter description" rows="2"
-                                                                    cols="25" matInput #additionalInfo maxlength="286"
-                                                                    [(ngModel)]="item['AdditionalInfo']"
-                                                                    [ngModelOptions]="{standalone: true}"></textarea>
+                                                                  cols="25" matInput #additionalInfo maxlength="286"
+                                                                  [(ngModel)]="item['AdditionalInfo']"
+                                                                  [ngModelOptions]="{standalone: true}"></textarea>
                                                         <mat-hint align="end">{{additionalInfo.value.length}} / 286</mat-hint>
                                                     </mat-form-field>
                                                 </div>
@@ -1021,22 +1024,22 @@
 
                         </div>
                         <mat-action-row>
-                                <div>
-                                    <ng-container *ngFor="let msg of schemaInErrorMsgs">
-                                        <span style="color:#f44336;font-size: 14px;font-weight: 600">{{msg}}</span>
-                                        <br />
-                                    </ng-container>
-                                    <ng-container *ngFor="let msg of schemaOutErrorMsgs">
-                                        <span style="color:#f44336;font-size: 14px;font-weight: 600">{{msg}}</span>
-                                        <br />
-                                    </ng-container>
-                                </div>
+                            <div>
+                                <ng-container *ngFor="let msg of schemaInErrorMsgs">
+                                    <span style="color:#f44336;font-size: 14px;font-weight: 600">{{msg}}</span>
+                                    <br />
+                                </ng-container>
+                                <ng-container *ngFor="let msg of schemaOutErrorMsgs">
+                                    <span style="color:#f44336;font-size: 14px;font-weight: 600">{{msg}}</span>
+                                    <br />
+                                </ng-container>
+                            </div>
                             <button style="height: 36px" type="submit" mat-button color="primary">Save</button>
                             <button style="height: 36px" type="button" mat-button color="warn" (click)="CancelLabelInfo()">Cancel</button>
                         </mat-action-row>
                     </form>
                 </mat-expansion-panel>
-                
+
 
 
                 <mat-expansion-panel [expanded]="Step==3" (opened)="Step=3;">
@@ -1139,7 +1142,7 @@
                                                 <!--(onchange)="{{recipient['AdditionalInfoText']=""}}"-->
                                                 <mat-form-field *ngIf="recipient['IsCustomKey']==false">
 
-                                                    nt
+                                                    
 
                                                     <select matNativeControl [(ngModel)]="recipient['InfoValue']" [ngModelOptions]="{standalone: true}" (change)="ResetAdditionalInfoTextBox(recipient)">
                                                         <option *ngFor="let propOption of infoSectionFieldsConfig[recipient['InfoKey']]['Options']" value="{{propOption}}">{{propOption}}</option>
@@ -1154,9 +1157,9 @@
 
                                                         <!--<input matInput maxlength="{{infoSectionFieldsConfig[recipient['InfoKey']]['AdditionalInfoMaxLength']}}" [(ngModel)]="recipient['AdditionalInfoText']" />-->
                                                     </mat-form-field>
-                                                    t-
+                                                   
                                                 </div>
-                                                t-
+                                                
                                             </td>
                                             <td *ngIf="recipient['InfoValueType']==7" width="250px">
                                                 <div *ngFor="let item of recipient['InfoValueOptions']; let idx= index">
@@ -1232,9 +1235,9 @@
 
                                                         <!--<input matInput maxlength="{{infoSectionFieldsConfig[recipient['InfoKey']]['AdditionalInfoMaxLength']}}" [(ngModel)]="recipient['AdditionalInfoText']" />-->
                                                     </mat-form-field>
-                                                    t-
+                                                   
                                                 </div>
-                                                t-
+                                                
                                             </td>
                                             <td width="100px" *ngIf="recipient['InfoValueType']==4">
                                                 <span>{{recipient['SliderMin']}}</span>
@@ -1263,7 +1266,7 @@
                                                 </div>
                                                 <!--(onchange)="{{recipient['AdditionalInfoText']=""}}"-->
                                                 <mat-form-field *ngIf="recipient['IsCustomKey']==false">
-                                                    ro
+                                                    
                                                     <select matNativeControl [(ngModel)]="recipient['InfoValue']" [ngModelOptions]="{standalone: true}" (change)="ResetAdditionalInfoTextBox(recipient)">
                                                         <option *ngFor="let propOption of infoSectionFieldsConfig[recipient['InfoKey']]['Options']" value="{{propOption}}">{{propOption}}</option>
                                                     </select>
@@ -1277,9 +1280,9 @@
 
                                                         <!--<input matInput maxlength="{{infoSectionFieldsConfig[recipient['InfoKey']]['AdditionalInfoMaxLength']}}" [(ngModel)]="recipient['AdditionalInfoText']" />-->
                                                     </mat-form-field>
-                                                    t-
+                                                   
                                                 </div>
-                                                t-
+                                                
                                             </td>
                                             <td *ngIf="recipient['InfoValueType']==7" width="250px">
                                                 <div *ngFor="let item of recipient['InfoValueOptions']; let idx= index">
@@ -1426,9 +1429,9 @@
                                     <!--<mat-hint align="end">{{infoKeyValue.value.length}} / {{NewInfoKeyValueMaxLength}}</mat-hint>-->
                                 </mat-form-field>
                             </td>
-                            ue
+                            
                             <td *ngIf="NewInfoKeyValueType==2" width="200px">
-                                e=
+                                
                                 <mat-form-field class="example-full-width" style="width:250px">
                                     <input type="number" matInput maxlength="200" [(ngModel)]="NewInfoKeyValue" />
                                 </mat-form-field>
@@ -1490,7 +1493,7 @@
 
 
 
-        
+
         <mat-tab label="Evaluate">
             <div class="site-main rounded text-center">
                 <mat-list *ngIf="MachineData.Label != null && !isMachineRunning">
