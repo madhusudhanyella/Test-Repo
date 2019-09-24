@@ -446,9 +446,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     IsLoadComplete = true;
 
-    InvalidKeyWarningText = 'key is not valid. key should be alphanumeric, underscore and dash  Ex: Dicom-study_1';
+    InvalidKeyWarningText = 'key should contain alphanumeric, underscore and dash(a-z,A - Z,0 - 9,-_) Example: Dicom-study1'; 
 
-    InvalidSubKeyWarningText = 'Key is not valid. key should be alphanumeric, underscore and dash  Ex: Dicom-study1';
+    InvalidSubKeyWarningText = 'key should contain alphanumeric, underscore and dash(a-Z, A - Z, 0 - 9, -_) Example: Dicom - series1';
 
     DicomBaseSubKeyValue = 'Dicom-Series';
 
@@ -498,7 +498,8 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             minValue: 0,
             maxValue: null,
             defaultText: '',
-            position: 'right'
+            position: 'right',
+            pattern: "^[0-9]*$"
         },
         {
             id: 'minimumCPUCore',
@@ -616,10 +617,18 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         if (isError) {
             this.dockerPropertiesErrors.push(msgText);
         }
-        let currentBaseOS = t.form.value['baseOS'];
+
+        let maximumProcessTime = t.form.value['maximumProcessTime'];
+        let typicalProcessTime = t.form.value['typicalProcessTime'];
+
+        if (typicalProcessTime > maximumProcessTime) {
+            this.dockerPropertiesErrors.push("Maximum Process Time should be greater than or equal to Typical Process Time");
+        }
+        
         if (this.dockerPropertiesErrors.length > 0) return;
 
         let formData = t.form.value;
+        let currentBaseOS = formData['baseOS'];
         this.MachineData.Label['dockerProperties'] = formData;
         this.DockerProperties.forEach(pr => {
             if (pr.id === 'baseOS') {
@@ -1863,15 +1872,17 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     BindDockerPropertiesData() {
         let dockerPropertiesData = this.MachineData.Label ? (this.MachineData.Label["dockerProperties"] || {}) : {};
-        this.DockerProperties.forEach(pr => {
-            let propKeys = Object.keys(dockerPropertiesData);
-            if (propKeys.indexOf(pr.id) !== -1) {
-                pr.selectedValue = dockerPropertiesData[pr.id];
-            }
-            if (pr.id === 'baseOS') {
-                pr.options = pr.options.filter(op => op.value === dockerPropertiesData[pr.id]);
-            }
-        })
+        if (Object.keys(dockerPropertiesData).length > 0) {
+            this.DockerProperties.forEach(pr => {
+                let propKeys = Object.keys(dockerPropertiesData);
+                if (propKeys.indexOf(pr.id) !== -1) {
+                    pr.selectedValue = dockerPropertiesData[pr.id];
+                }
+                if (pr.id === 'baseOS' && !!dockerPropertiesData[pr.id] ) {
+                    pr.options = pr.options.filter(op => op.value === dockerPropertiesData[pr.id]);
+                }
+            })
+        }
     }
 
     //This method is used to bind the Schema Data
