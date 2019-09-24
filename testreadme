@@ -495,7 +495,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             disableControlValue: '',
             selectedValue: 0,
             defaultValue: 0,
-            minValue: null,
+            minValue: 0,
             maxValue: null,
             defaultText: '',
             position: 'right'
@@ -540,7 +540,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             disableControlValue: '',
             selectedValue: 0,
             defaultValue: 0,
-            minValue: null,
+            minValue: 0,
             maxValue: null,
             defaultText: '',
             position: 'right'
@@ -603,7 +603,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         }
         let isError = false;
         this.DockerProperties.forEach(p => {
-            if ((p.selectedValue < p.minValue || p.selectedValue > p.maxValue) && p.minValue !== null && p.maxValue !== null) {
+            if (p.minValue !== null && p.selectedValue < p.minValue) {
+                isError = true;
+            }
+            if (p.maxValue !== null && p.selectedValue > p.maxValue) {
                 isError = true;
             }
             if (p.selectedValue === p.defaultValue && p.selectedValue !== "") {
@@ -1182,12 +1185,16 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         this.BindMachine();
     }
 
-    CancelDockerProperties() {
+    CancelDockerProperties(propsForm) {
         this.dockerPropertiesErrors = [];
+        let defaultSchema = {}
         this.DockerProperties.forEach(p => {
-            p.selectedValue = p.defaultValue == null ? '' : p.defaultValue;
-            p.enable = true;
+            defaultSchema[p.id] = p.defaultValue == null ? '' : p.defaultValue;
+            if (p.id === 'gpu') {
+                defaultSchema[p.id] = false;
+            }
         })
+        propsForm.reset(defaultSchema);
     }
 
     BindInfoData() {
@@ -1862,7 +1869,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 pr.selectedValue = dockerPropertiesData[pr.id];
             }
             if (pr.id === 'baseOS') {
-                pr.options = pr.options.filter(op => op.value === dockerPropertiesData['baseOS']);
+                pr.options = pr.options.filter(op => op.value === dockerPropertiesData[pr.id]);
             }
         })
     }
