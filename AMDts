@@ -1,0 +1,39 @@
+import { Component, OnInit, Inject } from '@angular/core';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+
+
+
+@Component({
+    selector: 'app-NewMachineDialog',
+    templateUrl: './addMachineDialog.component.html',
+    styleUrls: [ './addMachineDialog.component.css']
+})
+export class AddMachineDialogComponent implements OnInit
+{
+    ModelID: String;
+    ErrorMessage: String = '';
+    MachineInfo: String;
+    Core: String;
+    Memory: number = 1;
+    Duration: String;
+
+    constructor(public dialogRef: MatDialogRef<AddMachineDialogComponent>, @Inject(MAT_DIALOG_DATA) public data: any) { }
+
+    ngOnInit() { }
+
+    saveInfo()
+    {
+        const re = /(?:[a-z0-9]+(^\/*?)+(?:[._-][a-z0-9]+)*\/)*[a-z0-9]+(?:[._-][a-z0-9]+)*/g;
+
+        let match = this.ModelID.trim().match(re);
+
+        if ((match ? match.length : 0) != 1)
+        {
+            this.ErrorMessage = "The format for the model ID must be all lowercase with only dashes separating words";
+        }
+        else
+        {
+            this.dialogRef.close({ ModelID: this.ModelID, MachineInfo: this.MachineInfo });
+        }
+    }
+}
