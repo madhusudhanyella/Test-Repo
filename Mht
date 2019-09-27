@@ -1480,6 +1480,12 @@
                                     <mat-icon class="pointer mr-3" (click)="DeleteDynamicInfoKey(i,2)" style="font-size:20px" matTooltip="Delete Sub Key">remove_circle</mat-icon>
                                 </div>
                             </td>
+                            <td>
+                                <mat-icon class="pointer mr-3" (click)="IsNewInfoKeyAdded=false" style="font-size:20px" matTooltip="Delete">
+                                    close
+                                </mat-icon>
+
+                            </td>
                         </tr>
                     </table>
                     <mat-action-row>
