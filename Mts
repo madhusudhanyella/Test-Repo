@@ -446,7 +446,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     IsLoadComplete = true;
 
-    InvalidKeyWarningText = 'key should contain alphanumeric, underscore and dash(a-z,A - Z,0 - 9,-_) Example: Dicom-study1'; 
+    InvalidKeyWarningText = 'key should contain alphanumeric, underscore and dash(a-z,A - Z,0 - 9,-_) Example: Dicom-study1';
 
     InvalidSubKeyWarningText = 'key should contain alphanumeric, underscore and dash(a-Z, A - Z, 0 - 9, -_) Example: Dicom - series1';
 
@@ -575,6 +575,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     dockerPropertiesErrors = []
 
+    machineVersion = null;
+
+    machineDockerProperties: any = [];
 
     constructor(private eleRef: ElementRef, private httpc: HttpClient, public dialog: MatDialog,
         private route: ActivatedRoute, public router: Router, public snackBar: MatSnackBar, private _ngZone: NgZone, private change: ChangeDetectorRef, private matList: MatGridListModule, public errorService: ErrorSnackBarService) {
@@ -624,7 +627,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         if (typicalProcessTime > maximumProcessTime) {
             this.dockerPropertiesErrors.push("Maximum Process Time should be greater than or equal to Typical Process Time");
         }
-        
+
         if (this.dockerPropertiesErrors.length > 0) return;
 
         let formData = t.form.value;
@@ -673,8 +676,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 }
                 else
                     this.labelNeedsUpdate = false;
+                var machineLabelInfo = JSON.parse(this.MachineData.LabelJSON);
+                this.machineVersion = machineLabelInfo['metadata-version']
 
-                if (returnData.PortalID != '')
+                 if (returnData.PortalID != '')
                     this.currentPortalID = returnData.PortalID;
 
                 if (this.Mode == 'dev' && (this.MachineData.LabelJSON == "" || this.MachineData.LabelJSON == null)) {
@@ -767,9 +772,8 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 }
             },
             error => {
-
             });
-        }
+    }
 
     SetIsDataInputOutPutSaved() {
         if (this.MachineData.Label && this.MachineData.Label["schema-in"] && Object.keys(this.MachineData.Label["schema-in"]).length > 0) {
@@ -1878,8 +1882,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
 
     BindDockerPropertiesData() {
+        this.machineDockerProperties = [];
         let dockerPropertiesData = this.MachineData.Label ? (this.MachineData.Label["dockerProperties"] || {}) : {};
         if (Object.keys(dockerPropertiesData).length > 0) {
+            this.machineDockerProperties = Object.keys(dockerPropertiesData).map(key => ({title: this.DockerProperties.find(f =>f.id === key) ? this.DockerProperties.find(f =>f.id === key).name : null, value: dockerPropertiesData[key]})).filter(item => !!item.title);
             this.DockerProperties.forEach(pr => {
                 let propKeys = Object.keys(dockerPropertiesData);
                 if (propKeys.indexOf(pr.id) !== -1) {
