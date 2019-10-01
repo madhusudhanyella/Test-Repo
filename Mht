@@ -6,8 +6,8 @@
         </mat-toolbar>
         <mat-tab-group *ngIf="IsLoadComplete==true" [dynamicHeight]="false" [selectedIndex]="selectedIndex" (selectedIndexChange)="updateSelectedIndex($event)" #machineTabGroup>
             <mat-tab fxFlex label="Overview">
-                <div *ngIf="MachineData.Label != null && labelNeedsUpdate == false">
-                    <ng-container *ngIf="!(Mode == 'prod' && machineVersion != 3)">
+                <div *ngIf="labelNeedsUpdate == false">
+                    <ng-container *ngIf="MachineData.Label != null && !(Mode == 'prod' && machineVersion == 2)">
                         <table mat-table [dataSource]="machineDockerProperties" class="mat-elevation-z8" style="width:100%;">
                             <ng-container matColumnDef="title">
                                 <td mat-cell style="width:175px;" *matCellDef="let element" class="text-secondary"> {{element.title}} </td>
@@ -44,7 +44,7 @@
                         </mat-expansion-panel>
                     </div>
                     <br />
-                    <ng-container *ngIf="!(Mode == 'prod' && machineVersion != 3)">
+                    <ng-container *ngIf="MachineData.Label != null && !(Mode == 'prod' && machineVersion == 2)">
                         <table mat-table [dataSource]="machineLabel" class="mat-elevation-z8" style="width:100%;">
                             <ng-container matColumnDef="title">
                                 <td mat-cell style="width:175px;" *matCellDef="let element" class="text-secondary"> {{element.title}} </td>
@@ -73,7 +73,7 @@
                     <br />
                     <h2>Retrieving information from docker container now</h2>
                 </div>
-                <div *ngIf="machineVersion !=3" style="margin:30px" class="alert alert-info">
+                <div *ngIf="Mode =='prod' && machineVersion == 2" style="margin:30px" class="alert alert-info">
                     This is version-2. please upgrade to version-3
                 </div>
             </mat-tab>
