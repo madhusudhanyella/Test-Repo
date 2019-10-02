@@ -1,4 +1,4 @@
- import { Component, OnInit, ElementRef, NgModule, NgZone, ChangeDetectorRef, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, NgModule, NgZone, ChangeDetectorRef, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatGridListModule } from '@angular/material/grid-list';
@@ -459,7 +459,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             id: 'baseOS',
             type: 'dropdown',
             name: 'Base OS',
-            enabled: true,
+            enable: true,
             options: [{ text: 'Linux', value: 'Linux' }, { text: 'Windows', value: 'Windows' }],
             disableControldId: 'gpu',
             disableControlValue: 'Windows',
@@ -577,7 +577,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     machineVersion = null;
 
-    machineDockerProperties: any = [];
+    machineDockerProperties: any = this.DockerProperties.map(i => ({title: i.name, value: i.selectedValue}));
 
     constructor(private eleRef: ElementRef, private httpc: HttpClient, public dialog: MatDialog,
         private route: ActivatedRoute, public router: Router, public snackBar: MatSnackBar, private _ngZone: NgZone, private change: ChangeDetectorRef, private matList: MatGridListModule, public errorService: ErrorSnackBarService) {
@@ -638,6 +638,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 pr.options = pr.options.filter(op => op.value === currentBaseOS);
             }
         })
+        this.BindDockerPropertiesForOverview();
     }
 
     ngOnInit() {
@@ -679,9 +680,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 if (this.MachineData.LabelJSON != "") {
                     var machineLabelInfo = JSON.parse(this.MachineData.LabelJSON);
                     this.machineVersion = machineLabelInfo['metadata-version']
-                } 7 
+                } 7
 
-                 if (returnData.PortalID != '')
+                if (returnData.PortalID != '')
                     this.currentPortalID = returnData.PortalID;
 
                 if (this.Mode == 'dev' && (this.MachineData.LabelJSON == "" || this.MachineData.LabelJSON == null)) {
@@ -707,10 +708,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.SetIsDataInputOutPutSaved();
 
                     //this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
-                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo, this.infoSectionData);
 
                     //this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
-                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo, this.infoSectionData);
 
                     if (this.MachineData.Label["timeout"] == "") {
                         this.MachineData.Label["timeout"] = 30;
@@ -738,10 +739,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.DeployedVersionTag = this.DeployedMachine.versiontag
 
                     this.MachineData.Label = JSON.parse(this.DeployedMachine.LabelJSON);
-                    if (this.MachineData.Label &&!this.MachineData.Label['schema-in']) {
+                    if (this.MachineData.Label && !this.MachineData.Label['schema-in']) {
                         this.MachineData.Label['schema-in'] = {}
                     }
-                    if (this.MachineData.Label &&!this.MachineData.Label['schema-out']) {
+                    if (this.MachineData.Label && !this.MachineData.Label['schema-out']) {
                         this.MachineData.Label['schema-out'] = {}
                     }
                     this.MachineData.FullDockerID = this.DeployedMachine.fulldockerid;
@@ -751,7 +752,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.BindInfoData();
                     this.BindDockerPropertiesData();
                     this.SetIsDataInputOutPutSaved();
-                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo, this.infoSectionData);
 
                     //loop through all input keys and init the selected items array with default values in case there are no changes
                     Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
@@ -787,6 +788,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 }
             },
             error => {
+                
             });
     }
 
@@ -848,7 +850,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 if (returnData != null) {
                     Object.assign(this.MachineData, returnData);
                     this.MachineData.Label = JSON.parse(this.MachineData.LabelJSON);
-                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo, this.infoSectionData);
 
                     if (this.MachineData.DateUpdatedInECR > this.MachineData.DateUpdated)
                         this.labelNeedsUpdate = true;
@@ -966,35 +968,37 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         });
     }
 
-    static SortMachineInfoProps(props: any) {
-        let sorted = new Array();
-        let propKeys = Object.getOwnPropertyNames(props);
+    static SortMachineInfoProps(props: any, infoSectionData = []) {
+        // let sorted = new Array();
+        // let propKeys = Object.getOwnPropertyNames(props);
 
-        // separate the array into values that exist in our sorted array, and those that don't:
-        let pKeysExisting = propKeys.filter((p) => {
-            return SortedInfoProps.indexOf(p) !== -1;
-        });
-        let pKeysNonExisting = propKeys.filter((p) => {
-            return SortedInfoProps.indexOf(p) === -1;
-        });
+        // // separate the array into values that exist in our sorted array, and those that don't:
+        // let pKeysExisting = propKeys.filter((p) => {
+        //     return SortedInfoProps.indexOf(p) !== -1;
+        // });
+        // let pKeysNonExisting = propKeys.filter((p) => {
+        //     return SortedInfoProps.indexOf(p) === -1;
+        // });
 
-        // now sort the existing:
-        SortedInfoProps.forEach((p: string) => {
-            if (pKeysExisting.indexOf(p) !== -1) {
-                let newItem = new InfoProp();
-                newItem.title = MachineInfoSchema[p] ? MachineInfoSchema[p].title : p;
-                newItem.value = props[p]
-                sorted.push(newItem);
-            }
-        });
+        // // now sort the existing:
+        // SortedInfoProps.forEach((p: string) => {
+        //     if (pKeysExisting.indexOf(p) !== -1) {
+        //         let newItem = new InfoProp();
+        //         newItem.title = MachineInfoSchema[p] ? MachineInfoSchema[p].title : p;
+        //         newItem.value = props[p]
+        //         sorted.push(newItem);
+        //     }
+        // });
 
-        // and add the remaining 
-        pKeysNonExisting.forEach((p: string) => {
-            let newItem = new InfoProp();
-            newItem.title = MachineInfoSchema[p] ? MachineInfoSchema[p].title : p;
-            newItem.value = props[p]
-            sorted.push(newItem);
-        });
+        // // and add the remaining 
+        // pKeysNonExisting.forEach((p: string) => {
+        //     let newItem = new InfoProp();
+        //     newItem.title = MachineInfoSchema[p] ? MachineInfoSchema[p].title : p;
+        //     newItem.value = props[p]
+        //     sorted.push(newItem);
+        // });
+
+        let sorted = infoSectionData.map(i => ({title: MachineInfoSchema[i.InfoKey] ? MachineInfoSchema[i.InfoKey].title : i.InfoKey, value: i.InfoValue || ''}))
 
         return sorted;
     }
@@ -1069,7 +1073,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
                     if (this.MachineData.LabelJSON != "") {
                         this.MachineData.Label = JSON.parse(this.MachineData.LabelJSON);
-                        this.machineLabel = [...MachineComponent.SortMachineInfoProps(this.MachineData.Label.info)];
+                        this.machineLabel = [...MachineComponent.SortMachineInfoProps(this.machineInfo, this.infoSectionData)];
                         this.change.detectChanges();
                         //loop through all input keys and init the selected items array with default values in case there are no changes
                         Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
@@ -1575,6 +1579,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             })
             this.SelectedInfoKey = '';
         }
+        this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo, this.infoSectionData);
 
     }
 
@@ -1896,21 +1901,27 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         }
     }
 
+    BindDockerPropertiesForOverview() {
+        let filteredProps = this.DockerProperties.filter(i => !!i.enable);
+        this.machineDockerProperties =  filteredProps.map(i => ({title: i.name, value: i.selectedValue}));
+    }
+
     BindDockerPropertiesData() {
-        this.machineDockerProperties = [];
         let dockerPropertiesData = this.MachineData.Label ? (this.MachineData.Label["dockerProperties"] || {}) : {};
         if (Object.keys(dockerPropertiesData).length > 0) {
-            this.machineDockerProperties = Object.keys(dockerPropertiesData).map(key => ({title: this.DockerProperties.find(f =>f.id === key) ? this.DockerProperties.find(f =>f.id === key).name : null, value: dockerPropertiesData[key]})).filter(item => !!item.title);
             this.DockerProperties.forEach(pr => {
                 let propKeys = Object.keys(dockerPropertiesData);
                 if (propKeys.indexOf(pr.id) !== -1) {
                     pr.selectedValue = dockerPropertiesData[pr.id];
                 }
-                if (pr.id === 'baseOS' && !!dockerPropertiesData[pr.id] ) {
+                if (pr.id === 'baseOS' && !!dockerPropertiesData[pr.id]) {
                     pr.options = pr.options.filter(op => op.value === dockerPropertiesData[pr.id]);
+                    this.PropertyChange(pr);
                 }
+                
             })
         }
+        this.BindDockerPropertiesForOverview()
     }
 
     //This method is used to bind the Schema Data
