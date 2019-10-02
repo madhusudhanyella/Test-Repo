@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, NgModule, NgZone, ChangeDetectorRef, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA, ViewChild } from '@angular/core';
+ import { Component, OnInit, ElementRef, NgModule, NgZone, ChangeDetectorRef, ViewEncapsulation, CUSTOM_ELEMENTS_SCHEMA, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { MatGridListModule } from '@angular/material/grid-list';
@@ -676,8 +676,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 }
                 else
                     this.labelNeedsUpdate = false;
-                var machineLabelInfo = JSON.parse(this.MachineData.LabelJSON);
-                this.machineVersion = machineLabelInfo['metadata-version']
+                if (this.MachineData.LabelJSON != "") {
+                    var machineLabelInfo = JSON.parse(this.MachineData.LabelJSON);
+                    this.machineVersion = machineLabelInfo['metadata-version']
+                } 7 
 
                  if (returnData.PortalID != '')
                     this.currentPortalID = returnData.PortalID;
@@ -689,6 +691,12 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
                 if (this.Mode == 'dev' && this.MachineData.LabelJSON != "") {
                     this.MachineData.Label = JSON.parse(this.MachineData.LabelJSON);
+                    if (this.MachineData.Label && !this.MachineData.Label['schema-in']) {
+                        this.MachineData.Label['schema-in'] = {}
+                    }
+                    if (this.MachineData.Label && !this.MachineData.Label['schema-out']) {
+                        this.MachineData.Label['schema-out'] = {}
+                    }
                     this.labelInfo = this.MachineData.Label.info;
                     this.BindSchemaData();
 
@@ -730,13 +738,20 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.DeployedVersionTag = this.DeployedMachine.versiontag
 
                     this.MachineData.Label = JSON.parse(this.DeployedMachine.LabelJSON);
+                    if (this.MachineData.Label &&!this.MachineData.Label['schema-in']) {
+                        this.MachineData.Label['schema-in'] = {}
+                    }
+                    if (this.MachineData.Label &&!this.MachineData.Label['schema-out']) {
+                        this.MachineData.Label['schema-out'] = {}
+                    }
                     this.MachineData.FullDockerID = this.DeployedMachine.fulldockerid;
                     this.labelInfo = this.MachineData.Label.info;
                     this.schemaInData = this.MachineData.Label["schema-in"];
                     this.schemaOutData = this.MachineData.Label["schema-out"];
+                    this.BindInfoData();
                     this.BindDockerPropertiesData();
                     this.SetIsDataInputOutPutSaved();
-                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.MachineData.Label.info);
+                    this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo);
 
                     //loop through all input keys and init the selected items array with default values in case there are no changes
                     Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
