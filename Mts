@@ -1681,6 +1681,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 };
                 this.customSchemaOutDicomDict.push(obj);
             }
+            if (this.SelectedSchemaOutDicomType === "DICOM Study") {
+                this.dicomOutTypes = this.dicomOutTypes.filter(item => item !== this.SelectedSchemaOutDicomType);
+            }
+            this.SelectedSchemaOutDicomType = "";
         }
 
     }
@@ -2080,6 +2084,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             if (schemaOutTypes.indexOf(dropdownKey) > -1) {
                 this.customSchemaOutDicomDict.push(newObject);
                 this.SelectedSchemaOutDicomType = "";
+                if (this.customSchemaOutDicomDict.some(f => f.key === "DICOM Study")) {
+                    this.dicomOutTypes = this.dicomOutTypes.filter(item => item !== "DICOM Study");
+                }
             }
             else if (this.primitivOutFinding.indexOf(dropdownKey) > -1) {
                 this.customSchemaOutFindings.push(newObject);
@@ -2407,13 +2414,13 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 }
             }
         }
-        for (let i=0; i< this.customschemaOutDicomDict.length; i++){
-            if (this.customschemaOutDicomDict[i].value && !patt.test(this.customschemaOutDicomDict[i].value)) {
+        for (let i=0; i< this.customSchemaOutDicomDict.length; i++){
+            if (this.customSchemaOutDicomDict[i].value && !patt.test(this.customSchemaOutDicomDict[i].value)) {
                 return false;
             }
-            if (this.customschemaOutDicomDict[i].ChildSeries) {
-                for (let j = 0; j < this.customschemaOutDicomDict[i].ChildSeries.length; j++) {
-                    if (!patt.test(this.customschemaOutDicomDict[i].ChildSeries[j].key)) {
+            if (this.customSchemaOutDicomDict[i].ChildSeries) {
+                for (let j = 0; j < this.customSchemaOutDicomDict[i].ChildSeries.length; j++) {
+                    if (!patt.test(this.customSchemaOutDicomDict[i].ChildSeries[j].key)) {
                         return false;
                     }
                 }
