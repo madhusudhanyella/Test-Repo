@@ -442,7 +442,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     primitivInTypes: string[] = ['File', 'License'];
 
     dicomOutTypes: string[] = ['DICOM Series', 'DICOM Study'];
-    dicomOutTypesCopy: string[] = ['DICOM Series', 'DICOM Study'];
     primitivOutFileTypes: string[] = ['Image', 'Pdf', 'File', 'LogFile'];
     primitivOutFinding: string[] = ['FindingSummary', 'Finding', 'SliceFinding'];
 
@@ -1666,15 +1665,22 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             }
         }
         else if (schemaType == 'O') {
-            if (this.SelectedSchemaOutDicomType === "DICOM Study" && this.customSchemaOutDicomDict.length > 0) {
+            if (this.SelectedSchemaOutDicomType === "DICOM Study" && this.customSchemaOutDicomDict.length === 1 && this.customSchemaOutDicomDict[0].key === this.SelectedSchemaOutDicomType) {
                 return;
-            } 
+            }
+            if (this.SelectedSchemaOutDicomType === "DICOM Study") {
+                this.customSchemaOutDicomDict = [];    
+            }
             if (this.schemaOutConfig[this.SelectedSchemaOutDicomType]['IsChildSeriesExists'] == true) {
                 let obj = {
                     key: this.SelectedSchemaOutDicomType,
                     value: this.SelectedSchemaOutDicomType.replace(/ /g, '') + "1",
                     ChildSeries: []
                 };
+                let keysMapped = this.customSchemaOutDicomDict.map(item => item.key);
+                if (keysMapped[keysMapped.length-1] !== this.SelectedSchemaOutDicomType) {
+                    this.customSchemaOutDicomDict = []; 
+                }
                 this.customSchemaOutDicomDict.push(obj);
             }
             else {
@@ -1682,9 +1688,12 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     key: this.SelectedSchemaOutDicomType,
                     value: this.SelectedSchemaOutDicomType.replace(/ /g, '') + (this.customSchemaOutDicomDict.filter(obj => obj.key === this.SelectedSchemaOutDicomType).length + 1)
                 };
+                let keysMapped = this.customSchemaOutDicomDict.map(item => item.key);
+                if (keysMapped[keysMapped.length-1] !== this.SelectedSchemaOutDicomType) {
+                    this.customSchemaOutDicomDict = []; 
+                }
                 this.customSchemaOutDicomDict.push(obj);
             }
-            this.dicomOutTypes = this.dicomOutTypes.filter(item => item == this.SelectedSchemaOutDicomType);
             if (this.SelectedSchemaOutDicomType === "DICOM Series") {
                 setTimeout(() => {
                     this.SelectedSchemaOutDicomType = "";
@@ -1711,7 +1720,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             } else if (componentType == 'DICOM') {
                 this.customSchemaOutDicomDict.splice(index, 1);
                 if (this.customSchemaOutDicomDict.length === 0) {
-                    this.dicomOutTypes = this.dicomOutTypesCopy;
                     this.SelectedSchemaOutDicomType = "";
                 }
             }
@@ -1998,7 +2006,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         this.customSchemaOutDicomDict = [];
         var customSchemaOutTypes = [];
-        var schemaOutTypes = this.dicomOutTypesCopy;
+        var schemaOutTypes = this.dicomOutTypes;
         var primitivOutTypes = this.primitivOutFileTypes;
 
         for (var item in customSchemaInKeys) {
@@ -2103,16 +2111,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 this.customSchemaOutDict.push(newObject);
             }
         }
-        let dicomOutKeys = this.customSchemaOutDicomDict.map(item => item.key);
-        let uniqueKeys = dicomOutKeys.filter((v,i) => dicomOutKeys.indexOf(v) === i);
-        if (uniqueKeys.indexOf('DICOM Study') !== -1) {
-            this.dicomOutTypes = this.dicomOutTypesCopy.filter(item =>  item === 'DICOM Study');
-            this.SelectedSchemaOutDicomType = "DICOM Study";
-        }
-        if (uniqueKeys.indexOf('DICOM Series') !== -1) {
-            this.dicomOutTypes = this.dicomOutTypesCopy.filter(item =>  item === 'DICOM Series');
-            this.SelectedSchemaOutDicomType = "";
-        }
+        if (this.customSchemaOutDicomDict.length === 1 && this.customSchemaOutDicomDict[0].key === 'DICOM Study') {
+            this.SelectedSchemaOutDicomType = "DICOM Study"
+        } 
 
     }
 
