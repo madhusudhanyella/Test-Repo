@@ -1034,7 +1034,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     showButtonForProperty(value: any) {
         var propertyType = this.getPropertyType(value);
 
-        if (propertyType == 'DICOM Series' || propertyType == 'DICOM Image' || propertyType == 'dicom-series' || propertyType == 'dicom-image') {
+        if (propertyType == 'DICOM Series' || propertyType == 'DICOM Image' || propertyType == 'dicom-series' || propertyType == 'dicom-image' || propertyType == 'DICOM Study' || propertyType == 'File' || propertyType == 'License') {
             return true;
         }
     }
