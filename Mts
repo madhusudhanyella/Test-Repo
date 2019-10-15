@@ -660,6 +660,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         this.BindMachine();
         this.BindDeploymentData();
+        this.upgradeVersionTemporary();
     }
 
     BindMachine() {
@@ -1428,6 +1429,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             this.httpc.post("/api/machines/SaveLabelInfo", { MachineID: this.route.snapshot.queryParamMap.get("id"), Label: this.MachineData.Label }).subscribe(
                 (returnData: any) => {
                     this.CancelLabelInfo();
+                    this.upgradeVersionTemporary();
                 },
                 error => { });
             if (this.Step != 3) {
@@ -2495,6 +2497,15 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         return true;
     }
 
+
+    upgradeVersionTemporary() {
+        if ( (this.customSchemaInDict && this.customSchemaInDict.length > 0) ||  (this.customSchemaOutDict && this.customSchemaOutDict.length > 0) || (this.customSchemaOutDicomDict && this.customSchemaOutDicomDict > 0) || (this.customSchemaOutFindings && this.customSchemaOutFindings.length > 0) || (this.customschemaInDicom && Object.keys(this.customschemaInDicom).length > 0) || (this.MachineData.Label.dockerProperties && Object.keys(this.MachineData.Label.dockerProperties).length > 0 ) || (this.MachineData.Label.info && this.MachineData.Label.info.length > 0) ) {
+            this.machineVersion = 3;
+        }
+    }
+
+
+   
     //This method is used to check if the array has duplicates or not
     hasDuplicates(array) {
         array = array.map(item => item.toLowerCase());
