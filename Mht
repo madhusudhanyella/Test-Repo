@@ -1,12 +1,12 @@
 <div fxFill>
-    <mat-toolbar style="height:22px;">
+    <mat-toolbar style="height:40px;">
         <mat-icon class="pointer" (click)="NavigateBack()">arrow_back</mat-icon>
         <span><font class="text-secondary">{{ProductData.ProductName}}</font> / {{MachineData.DockerID}}{{DeployedVersionTag != "" ? (":" + DeployedVersionTag) : ""}}</span>
         <span class="V3-Badge"><mat-icon class="pointer" style="width: 14px!important;height: 12px!important;font-size: 15px;">flash_on</mat-icon>V3</span>
     </mat-toolbar>
     <mat-tab-group *ngIf="IsLoadComplete==true" [dynamicHeight]="false" [selectedIndex]="selectedIndex" (selectedIndexChange)="updateSelectedIndex($event)" #machineTabGroup>
         <mat-tab fxFlex label="Overview">
-            <div *ngIf="labelNeedsUpdate == false">
+            <div>
                 <ng-container *ngIf="MachineData.Label != null && !(machineVersion == 2)">
                     <table mat-table [dataSource]="machineDockerProperties" class="mat-elevation-z8" style="width:100%;">
                         <ng-container matColumnDef="title">
@@ -23,19 +23,31 @@
                 </ng-container>
                 <div fxLayout="row" fxLayoutAlign="space-between stretch" fxLayoutGap="10px">
                     <mat-expansion-panel [expanded]="true" fxFlex>
-                        <mat-expansion-panel-header style="height:30px;">
+                        <mat-expansion-panel-header [collapsedHeight]="'40px'" [expandedHeight]="'40px'">
                             <mat-panel-title>
                                 Input
                             </mat-panel-title>
                         </mat-expansion-panel-header>
                         <ng-container ﻿*ngIf="﻿MachineData.Label && ﻿MachineData.Label['schema-in']">
                             <mat-list>
-                                <mat-list-item *ngFor="let prop of MachineData.Label['schema-in'] | keyvalue">{{prop.key}} &nbsp;&nbsp;<span class="text-secondary">({{getPropertyType(prop.value)}})</span></mat-list-item>
+                                <mat-list-item class="schema-in-list-item" *ngFor="let prop of MachineData.Label['schema-in'] | keyvalue">
+                                    <div>
+                                        <div>
+                                            {{prop.key}} &nbsp;&nbsp;<span class="text-secondary">({{getPropertyType(prop.value)}})</span>
+                                            &nbsp; &nbsp; &nbsp;<span class="text-secondary">{{getPathForInput(prop.key, prop.value)}}</span>
+                                        </div>
+                                        <div style="padding-left: 30px;padding-bottom: 10px;" *ngIf="prop.value && prop.value.ChildSeries">
+                                                <div style="padding-top: 20px;" *ngFor="let subprop of prop.value.ChildSeries">
+                                                    {{subprop.key}}&nbsp; &nbsp; &nbsp;<span class="text-secondary">{{getPathForInput(subprop.key, prop.value, prop.key)}}</span>
+                                                </div>
+                                        </div>
+                                    </div>
+                                </mat-list-item>
                             </mat-list>
                         </ng-container>
                     </mat-expansion-panel>
                     <mat-expansion-panel [expanded]="true" fxFlex>
-                        <mat-expansion-panel-header style="height:30px;">
+                        <mat-expansion-panel-header [collapsedHeight]="'40px'" [expandedHeight]="'40px'">
                             <mat-panel-title>
                                 Output
                             </mat-panel-title>
@@ -71,23 +83,17 @@
                 <br />
                 <button mat-raised-button color="primary" (click)="updateSelectedIndex(2)">Go to Administration Section</button>
             </div>
-            <div *ngIf="machineLoaded && labelNeedsUpdate" style="min-height:650px;background-color:#424242;" class="text-light p-2 text-center">
-                <br /><br />
-                <h2>Machine information on the Portal is out of date</h2>
-                <br />
-                <h2>Retrieving information from docker container now</h2>
-            </div>
-            <div *ngIf="machineVersion == 2" style="margin:0px;background-color:#424242;color:#ffc107;font-size: 19px;" class="alert alert-info">
-                Please note that this is version-2. Upgrade to version-3 by filling the label creator.
+            <div *ngIf="machineVersion==2" style="margin:0px;background-color:#424242;color:#ffc107;font-size: 19px;" class="alert alert-info">
+                Please note that this is version-2. Upgrade to version-3 by creating a new machine.
             </div>
         </mat-tab>
 
 
 
-        <mat-tab *ngIf="Mode =='dev' && IsLabelCreatorEnabled==true" label="Label Creator">
+        <mat-tab *ngIf="Mode =='dev' && IsLabelCreatorEnabled==true && machineVersion!=2" label="Label Creator">
             <mat-accordion *ngIf="MachineData.LabelJSON != '' && MachineData.Label != null">
                 <mat-expansion-panel [expanded]="Step==1" (opened)="Step=1;">
-                    <mat-expansion-panel-header>
+                    <mat-expansion-panel-header [collapsedHeight]="'40px'" [expandedHeight]="'40px'">
                         <mat-panel-title>
                             Docker Properties
                         </mat-panel-title>
@@ -118,7 +124,7 @@
                     <form #dockerPopertiesForm="ngForm" (ngSubmit)="SaveJsonData(1, dockerPopertiesForm)">
                         <div fxLayoutGap="5%" fxLayout="row">
                             <div *ngFor="let alignment of DockerPropertiesAlignments" class="docker-properties" fxLayoutGap="10%" fxFlex="50%" fxLayout="column">
-                                <div class="docker-properties-column" fxLayout="row" *ngFor="let item of DockerPropertiesCombined[alignment]">
+                                <div [style.padding-top.px]="item.type == 'radio' || item.type == 'slider' ? '16' : '0'" class="docker-properties-column" fxLayout="row" *ngFor="let item of DockerPropertiesCombined[alignment]">
                                     <div [ngClass]="item.type == 'radio' ? 'name-radio-top' : item.type == 'slider' ? 'name-slider-top' : ''" class="docker-properties-name" fxLayout="column" fxFlex="44%">
                                         <label>{{item.name}}</label>
                                     </div>
@@ -250,7 +256,7 @@
 
 
                 <mat-expansion-panel [expanded]="Step==2" (opened)="Step=2;">
-                    <mat-expansion-panel-header>
+                    <mat-expansion-panel-header [collapsedHeight]="'40px'" [expandedHeight]="'40px'">
                         <mat-panel-title>
                             Data I/O
                         </mat-panel-title>
@@ -826,8 +832,8 @@
                                             <td style="padding:5px;padding-top:10px;width:65%">
                                                 <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                     <input matInput (change)="DataChange()" placeholder="Key" [(ngModel)]="item.value"
-                                                            [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
-                                                            pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
+                                                           [ngModelOptions]="{standalone: true}" #name="ngModel" required maxlength="100"
+                                                           pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$">
                                                 </mat-form-field>
                                                 <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)" class="alert alert-danger">
                                                     <div *ngIf="name.errors.required">
@@ -846,8 +852,8 @@
                                             </td>
                                             <td style="width: 10%" class="vertical-align-close">
                                                 <mat-icon class="pointer mr-3" style="font-size:20px;float:right"
-                                                            (click)="DeleteDynamicSchemaKey('schema-out',i,item.value,'DICOM')"
-                                                            matTooltip="Delete Key">
+                                                          (click)="DeleteDynamicSchemaKey('schema-out',i,item.value,'DICOM')"
+                                                          matTooltip="Delete Key">
                                                     close
                                                 </mat-icon>
                                             </td>
@@ -859,9 +865,9 @@
                                                         <mat-form-field class="example-full-width CustomControl"
                                                                         style="width:448px;height:50px;margin-bottom:20px">
                                                             <textarea (change)="DataChange()" placeholder="Please enter description" rows="2"
-                                                                        cols="25" matInput #additionalInfo maxlength="286"
-                                                                        [(ngModel)]="item['AdditionalInfo']"
-                                                                        [ngModelOptions]="{standalone: true}"></textarea>
+                                                                      cols="25" matInput #additionalInfo maxlength="286"
+                                                                      [(ngModel)]="item['AdditionalInfo']"
+                                                                      [ngModelOptions]="{standalone: true}"></textarea>
                                                             <mat-hint align="end">{{additionalInfo.value.length}} / 286</mat-hint>
                                                         </mat-form-field>
                                                     </div>
@@ -886,12 +892,12 @@
                                                         <td style="width: 75%">
                                                             <mat-form-field class="example-full-width" style="width:100%;height:40px">
                                                                 <input required pattern="^[a-zA-Z0-9][a-zA-Z0-9_-]*$" (change)="DataChange()" matInput
-                                                                        placeholder="{{schemaOutConfig[item.key]['ChildSeriesPlaceholder']}}"
-                                                                        maxlength="100" [(ngModel)]="child.key" #name="ngModel"
-                                                                        [ngModelOptions]="{standalone: true}">
+                                                                       placeholder="{{schemaOutConfig[item.key]['ChildSeriesPlaceholder']}}"
+                                                                       maxlength="100" [(ngModel)]="child.key" #name="ngModel"
+                                                                       [ngModelOptions]="{standalone: true}">
                                                             </mat-form-field>
                                                             <div style="margin:0px" *ngIf="name.invalid && (name.dirty || name.touched || myForm.submitted)"
-                                                                    class="alert alert-danger">
+                                                                 class="alert alert-danger">
                                                                 <div *ngIf="name.errors.required">
                                                                     Sub Key is required.
                                                                 </div>
@@ -905,15 +911,15 @@
                                                             <br />
                                                             <mat-form-field class="example-full-width CustomControl" style="width:100%">
                                                                 <textarea (change)="DataChange()" placeholder="Please enter description"
-                                                                            rows="2" cols="20" matInput #additionalInfo maxlength="100"
-                                                                            [(ngModel)]="child.value"
-                                                                            [ngModelOptions]="{standalone: true}"></textarea>
+                                                                          rows="2" cols="20" matInput #additionalInfo maxlength="100"
+                                                                          [(ngModel)]="child.value"
+                                                                          [ngModelOptions]="{standalone: true}"></textarea>
                                                                 <mat-hint align="end">{{additionalInfo.value.length}} / 100</mat-hint>
                                                             </mat-form-field>
                                                         </td>
                                                         <td style="width: 20%" class="vertical-align-child-close">
                                                             <mat-icon class="pointer mr-3 ChildDelete" style="font-size:20px;"
-                                                                        (click)="DeleteChildSeriesDicom(j,'O', i)" matTooltip="Delete Child Key">
+                                                                      (click)="DeleteChildSeriesDicom(j,'O', i)" matTooltip="Delete Child Key">
                                                                 close
                                                             </mat-icon>
                                                         </td>
@@ -931,7 +937,7 @@
                                                             [ngClass]="(SelectedSchemaOutType =='')?'TxtCSS':''"
                                                             (ngModelChange)="SelectSchemaType('schema-out','NP')"
                                                             [ngModelOptions]="{standalone: true}">
-                                                        <option [ngValue]="''">--Please Choose NON-DICOM Out Schema Type--</option>
+                                                        <option [ngValue]="''">--Please Choose NON-DICOM Output Schema Type--</option>
                                                         <ng-container *ngFor="let propOption of primitivOutFileTypes">
                                                             <option [ngValue]="propOption">{{propOption}}</option>
                                                         </ng-container>
@@ -1089,7 +1095,7 @@
 
 
                 <mat-expansion-panel [expanded]="Step==3" (opened)="Step=3;">
-                    <mat-expansion-panel-header>
+                    <mat-expansion-panel-header [collapsedHeight]="'40px'" [expandedHeight]="'40px'">
                         <mat-panel-title>
                             Machine Information
                         </mat-panel-title>
@@ -1559,7 +1565,15 @@
                             <div><input type="checkbox" *ngIf="getPropertyType(prop.value) == 'boolean' && !SelectKeyValue(prop.key, 'false', i)" (change)="SelectKeyValue(prop.key, $event.target.checked, i)" /></div>
                             <input type="text" *ngIf="getPropertyType(prop.value) == 'string'" (change)="SelectKeyValue(prop.key, $event.target.value, i) " />
                             <span class="ml-2" *ngIf="selectedInputItems[prop.key]">{{selectedInputItems[prop.key].SelectedValue.name}}</span>
+
                         </mat-list-item>
+                        <ng-container *ngFor="let seriesProp of prop.value.ChildSeries| keyvalue; let i = index">
+                            <mat-list-item>
+                                <span class="ml-3">{{seriesProp.value.key}} &nbsp;&nbsp;<span class="text-secondary">(DICOM Series)</span></span>
+                                <button mat-raised-button color="primary" class="ml-2" (click)="SelectFiles(prop.key + '/'+seriesProp.value.key,'DICOM Series', i)">{{selectedInputItems[prop.key + '/'+seriesProp.value.key] ? "Change" : "Select"}}</button>
+                                <span class="ml-2" *ngIf="selectedInputItems[prop.key + '/'+seriesProp.value.key]">{{selectedInputItems[prop.key + '/'+seriesProp.value.key].SelectedValue.name}}</span>
+                            </mat-list-item>
+                        </ng-container>
                         <mat-divider></mat-divider>
                     </ng-container>
                 </mat-list>
@@ -1599,7 +1613,7 @@
                     <mat-icon style="color:red;display:inline-block;margin-left:30px;margin-bottom:10px;font-size:32px;vertical-align:middle;" *ngIf="showUpdateProgress == 3">error</mat-icon>
                 </div>
                 <br /><br /> -->
-                <div class="section push-image text-light">
+                <div class="section push-image text-light" *ngIf="machineVersion!=2">
                     <h2>Push Image</h2>
                     <div class="instruction">Click the button below to retrieve custom Docker commands to update your machine's image.</div>
                     <br />
@@ -1660,7 +1674,7 @@
                                 <span class="ml-2"> Deploying Machine. This may take some time to duplicate the machine</span>
                             </div>
                         </div>
-                        <span *ngIf="isVersionSaved" style="color:green">Success!</span>
+                        <span *ngIf="isVersionSaved" style="color:#86c886; font-size:17px;font-weight: 800;">Success!</span>
                     </mat-card-content>
                 </mat-card>
                 <br />
