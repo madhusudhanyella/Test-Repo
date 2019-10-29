@@ -82,7 +82,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         "nvidia": false
     };
     machineLoaded: boolean = false;
-    labelNeedsUpdate: boolean = false;
 
     public selectedIndex: number = 0;
 
@@ -481,6 +480,21 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             position: 'left'
         },
         {
+            id: 'machineType',
+            type: 'dropdown',
+            name: 'Machine Type',
+            enable: true,
+            options: [{ text: 'Default', value: 'Default' }, { text: 'Type 2', value: 'Type2' }],
+            disableControldId: null,
+            disableControlValue: null,
+            selectedValue: '',
+            defaultValue: null,
+            minValue: null,
+            maxValue: null,
+            defaultText: '--Please choose an Machine Type--',
+            position: 'left'
+        },
+        {
             id: 'gpu',
             type: 'radio',
             name: 'NVIDA SDK (GPU)',
@@ -660,7 +674,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         this.BindMachine();
         this.BindDeploymentData();
-        this.upgradeVersionTemporary();
     }
 
     BindMachine() {
@@ -683,15 +696,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
                 if (returnData.machineVersion) Object.assign(this.DeployedMachine, returnData.machineVersion);
 
-                if (this.MachineData.DateUpdatedInECR > this.MachineData.DateUpdated) {
-                    this.labelNeedsUpdate = true;
-                }
-                else
-                    this.labelNeedsUpdate = false;
                 if (this.MachineData.LabelJSON != "") {
                     var machineLabelInfo = JSON.parse(this.MachineData.LabelJSON);
-                    this.machineVersion = machineLabelInfo['metadata-version']
-                } 7
+                    this.machineVersion = machineLabelInfo['metadata-version'];
+                } 
 
                 if (returnData.PortalID != '')
                     this.currentPortalID = returnData.PortalID;
@@ -733,6 +741,19 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
                         var selectedValue = '';
 
+                        //if it's a dicomstudy type, get it's children
+                        if (this.MachineData.Label['schema-in'][k].type == 'DICOM Study')
+                        {
+                            let currentStudy = this.MachineData.Label['schema-in'][k];
+                            for (var loop = 0; loop < currentStudy.ChildSeries.length; loop++)
+                            {
+                                let keyName = k + "/" + currentStudy.ChildSeries[loop].key;
+                                this.selectedInputItems[keyName] = { Name: keyName, SelectedValue: '' };
+                            }
+                            console.log(this.selectedInputItems);
+                            return;
+                        }
+
                         //if it's enum, set to first in array
                         if (this.MachineData.Label['schema-in'][k].enum) {
                             selectedValue = this.MachineData.Label['schema-in'][k].enum[0];
@@ -770,6 +791,19 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                         console.log(this.MachineData.Label['schema-in'][k]);
                         var selectedValue = '';
 
+                        //if it's a dicomstudy type, get it's children
+                        if (this.MachineData.Label['schema-in'][k].type == 'DICOM Study')
+                        {
+                            let currentStudy = this.MachineData.Label['schema-in'][k];
+                            for (var loop = 0; loop < currentStudy.ChildSeries.length; loop++)
+                            {
+                                let keyName = k + "/" + currentStudy.ChildSeries[loop].key;
+                                this.selectedInputItems[keyName] = { Name: keyName, SelectedValue: '' };
+                            }
+                            console.log(this.selectedInputItems);
+                            return;
+                        }
+
                         //if it's enum, set to first in array
                         if (this.MachineData.Label['schema-in'][k].enum) {
                             selectedValue = this.MachineData.Label['schema-in'][k].enum[0];
@@ -794,9 +828,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 //if (this.Mode == 'prod') {
                 //    this.UpdateProductionMachineRepoData();
                 //}
-                if (this.labelNeedsUpdate) {
-                    this.UpdateMachineRepoData();
-                }
             },
             error => {
             });
@@ -861,11 +892,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     Object.assign(this.MachineData, returnData);
                     this.MachineData.Label = JSON.parse(this.MachineData.LabelJSON);
                     this.machineLabel = MachineComponent.SortMachineInfoProps(this.machineInfo, this.infoSectionData);
-
-                    if (this.MachineData.DateUpdatedInECR > this.MachineData.DateUpdated)
-                        this.labelNeedsUpdate = true;
-                    else
-                        this.labelNeedsUpdate = false;
 
                     this.showUpdateProgress = 2;
                 }
@@ -1032,10 +1058,24 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         return 'UNKNOWN';
     }
+
+    getPathForInput(key: string, value: any, parentKey: any) {
+        if (!key || !value || !value.type) return '';
+        let prefix = '/envoy/input/';
+        if (parentKey) {
+            prefix += parentKey + '/';
+        }
+        let val = prefix + key;
+        if (value.type.toLowerCase().indexOf('series') != -1 || value.type.toLowerCase().indexOf('study') != -1) {
+            val += '/';
+        }
+        return val;
+    }
+
     showButtonForProperty(value: any) {
         var propertyType = this.getPropertyType(value);
 
-        if (propertyType == 'DICOM Series' || propertyType == 'DICOM Image' || propertyType == 'dicom-series' || propertyType == 'dicom-image' || propertyType == 'DICOM Study' || propertyType == 'File' || propertyType == 'License') {
+        if (propertyType == 'DICOM Series' || propertyType == 'DICOM Image' || propertyType == 'dicom-series' || propertyType == 'dicom-image' || propertyType == 'File' || propertyType == 'License') {
             return true;
         }
     }
@@ -1429,7 +1469,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             this.httpc.post("/api/machines/SaveLabelInfo", { MachineID: this.route.snapshot.queryParamMap.get("id"), Label: this.MachineData.Label }).subscribe(
                 (returnData: any) => {
                     this.CancelLabelInfo();
-                    this.upgradeVersionTemporary();
                 },
                 error => { });
             if (this.Step != 3) {
@@ -1671,7 +1710,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 return;
             }
             if (this.SelectedSchemaOutDicomType === "DICOM Study") {
-                this.customSchemaOutDicomDict = [];    
+                this.customSchemaOutDicomDict = [];
             }
             if (this.schemaOutConfig[this.SelectedSchemaOutDicomType]['IsChildSeriesExists'] == true) {
                 let obj = {
@@ -1680,8 +1719,8 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     ChildSeries: []
                 };
                 let keysMapped = this.customSchemaOutDicomDict.map(item => item.key);
-                if (keysMapped[keysMapped.length-1] !== this.SelectedSchemaOutDicomType) {
-                    this.customSchemaOutDicomDict = []; 
+                if (keysMapped[keysMapped.length - 1] !== this.SelectedSchemaOutDicomType) {
+                    this.customSchemaOutDicomDict = [];
                 }
                 this.customSchemaOutDicomDict.push(obj);
             }
@@ -1691,17 +1730,17 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     value: this.SelectedSchemaOutDicomType.replace(/ /g, '') + (this.customSchemaOutDicomDict.filter(obj => obj.key === this.SelectedSchemaOutDicomType).length + 1)
                 };
                 let keysMapped = this.customSchemaOutDicomDict.map(item => item.key);
-                if (keysMapped[keysMapped.length-1] !== this.SelectedSchemaOutDicomType) {
-                    this.customSchemaOutDicomDict = []; 
+                if (keysMapped[keysMapped.length - 1] !== this.SelectedSchemaOutDicomType) {
+                    this.customSchemaOutDicomDict = [];
                 }
                 this.customSchemaOutDicomDict.push(obj);
             }
             if (this.SelectedSchemaOutDicomType === "DICOM Series") {
                 setTimeout(() => {
                     this.SelectedSchemaOutDicomType = "";
-                },0);
+                }, 0);
             }
-            
+
         }
 
     }
@@ -1969,28 +2008,28 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             return;
 
         this.CustomSchemaData();
-        if ((Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) || Object.keys(this.schemaInData).length == 0) {
-            if (Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) {
-                delete this.MachineData.Label['schema-in']["dicom-series-in"];
-                this.schemaInData = this.MachineData.Label["schema-in"];
+        //if ((Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) || Object.keys(this.schemaInData).length == 0) {
+        //    if (Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) {
+        //        delete this.MachineData.Label['schema-in']["dicom-series-in"];
+        //        this.schemaInData = this.MachineData.Label["schema-in"];
 
-            }
-            //this.schemaInDict.push({
-            //    key: "Input_data_1",
-            //    value: ""
-            //});
-        }
+        //    }
+        //    //this.schemaInDict.push({
+        //    //    key: "Input_data_1",
+        //    //    value: ""
+        //    //});
+        //}
 
-        if ((Object.keys(this.schemaOutData).length == 1 && this.schemaOutData["dicom-series-out"] != undefined) || Object.keys(this.schemaOutData).length == 0) {
-            if (Object.keys(this.schemaOutData).length == 1 && this.schemaOutData["dicom-series-out"] != undefined) {
-                delete this.MachineData.Label['schema-out']["dicom-series-out"];
-                this.schemaOutData = this.MachineData.Label["schema-out"];
-            }
-            //this.schemaOutDict.push({
-            //    key: "Output_data_1",
-            //    value: ""
-            //});
-        }
+        //if ((Object.keys(this.schemaOutData).length == 1 && this.schemaOutData["dicom-series-out"] != undefined) || Object.keys(this.schemaOutData).length == 0) {
+        //    if (Object.keys(this.schemaOutData).length == 1 && this.schemaOutData["dicom-series-out"] != undefined) {
+        //        delete this.MachineData.Label['schema-out']["dicom-series-out"];
+        //        this.schemaOutData = this.MachineData.Label["schema-out"];
+        //    }
+        //    //this.schemaOutDict.push({
+        //    //    key: "Output_data_1",
+        //    //    value: ""
+        //    //});
+        //}
     }
 
     CustomSchemaData() {
@@ -2115,7 +2154,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         }
         if (this.customSchemaOutDicomDict.length === 1 && this.customSchemaOutDicomDict[0].key === 'DICOM Study') {
             this.SelectedSchemaOutDicomType = "DICOM Study"
-        } 
+        }
 
     }
 
@@ -2498,14 +2537,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
 
 
-    upgradeVersionTemporary() {
-        if ( (this.customSchemaInDict && this.customSchemaInDict.length > 0) ||  (this.customSchemaOutDict && this.customSchemaOutDict.length > 0) || (this.customSchemaOutDicomDict && this.customSchemaOutDicomDict > 0) || (this.customSchemaOutFindings && this.customSchemaOutFindings.length > 0) || (this.customschemaInDicom && Object.keys(this.customschemaInDicom).length > 0) || (this.MachineData.Label.dockerProperties && Object.keys(this.MachineData.Label.dockerProperties).length > 0 ) || (this.MachineData.Label.info && this.MachineData.Label.info.length > 0) ) {
-            this.machineVersion = 3;
-        }
-    }
 
-
-   
     //This method is used to check if the array has duplicates or not
     hasDuplicates(array) {
         array = array.map(item => item.toLowerCase());
