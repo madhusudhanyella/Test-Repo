@@ -681,24 +681,29 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     showHelpModal(step: number, event: any) {
         let title = '';
         let link = '';
+        let desc = '';
         if (step === 1) {
             title = 'Docker Properties';
             link = 'https://github.com/EnvoyAI/examples/blob/master/FAQ.md';
+            desc = 'test data test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data ';
+
         }
         if (step === 2) {
             title = 'Data I/O';
             link = 'https://github.com/EnvoyAI/examples/blob/master/TYPES.md';
+            desc = 'test data test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data ';
         }
         if (step === 3) {
             title = 'Machine Information';
             link = 'https://github.com/EnvoyAI/examples/blob/master/REF.md';
+            desc = 'test data test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data ';
         }
 
         let dialogConfig = new MatDialogConfig();
         dialogConfig.minWidth = "50vw";
         dialogConfig.minHeight = "50vh";
         dialogConfig.backdropClass = 'overlay-backdrop-darker';
-        dialogConfig.data = { title, link, helpFor: 'labelCreator' };
+        dialogConfig.data = { title, link, helpFor: 'labelCreator', desc };
 
 
         let dialogRef = this.dialog.open(ShowHelpDialogComponent, dialogConfig);
@@ -860,7 +865,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 //}
             },
             error => {
-                
             });
     }
 
