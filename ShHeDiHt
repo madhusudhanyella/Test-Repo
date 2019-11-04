@@ -1,0 +1,34 @@
+<ng-container *ngIf="!data || data.helpFor != 'labelCreator'">
+        <h1 mat-dialog-title>Help: Product</h1>
+        <mat-divider class="mb-3 mt-1"></mat-divider>
+        <mat-dialog-content>
+            <p>
+                A Product is a set of machines that all use the same algorithm but may have different intputs and outputs.
+                <br />
+                This allows you to logically group all machines together for easier access and production versioning.
+                <br />
+            </p>
+            <p>A new product can be added by clicking the &nbsp;&nbsp;<mat-icon matTooltip="Add New Product">add_to_queue</mat-icon>&nbsp;&nbsp; button and a dialog will show up asking information about the product</p>
+            <br /><br />
+        </mat-dialog-content>
+        <mat-dialog-actions align="center">
+            <button mat-raised-button mat-primary color="primary" mat-dialog-close>Ok</button>
+        </mat-dialog-actions>
+    </ng-container>
+    <ng-container *ngIf="data && data.helpFor == 'labelCreator'">
+        <h1 mat-dialog-title>Help: {{data.title}}</h1>
+        <mat-divider class="mb-3 mt-1"></mat-divider>
+        <mat-dialog-content>
+            <p *ngIf="data && data.desc">
+                {{data.desc}}
+                <br />
+            </p>
+            <p *ngIf="data.link">
+                <a target="_blank" href="{{data.link}}">Click here</a> to find the more details about {{data.title}}
+            </p>
+            <br /><br />
+        </mat-dialog-content>
+        <mat-dialog-actions align="center">
+            <button mat-raised-button mat-primary color="primary" mat-dialog-close>Ok</button>
+        </mat-dialog-actions>
+    </ng-container>
