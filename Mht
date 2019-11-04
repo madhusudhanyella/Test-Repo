@@ -30,19 +30,7 @@
                         </mat-expansion-panel-header>
                         <ng-container ﻿*ngIf="﻿MachineData.Label && ﻿MachineData.Label['schema-in']">
                             <mat-list>
-                                <mat-list-item class="schema-in-list-item" *ngFor="let prop of MachineData.Label['schema-in'] | keyvalue">
-                                    <div>
-                                        <div>
-                                            {{prop.key}} &nbsp;&nbsp;<span class="text-secondary">({{getPropertyType(prop.value)}})</span>
-                                            &nbsp; &nbsp; &nbsp;<span class="text-secondary">{{getPathForInput(prop.key, prop.value)}}</span>
-                                        </div>
-                                        <div style="padding-left: 30px;padding-bottom: 10px;" *ngIf="prop.value && prop.value.ChildSeries">
-                                                <div style="padding-top: 20px;" *ngFor="let subprop of prop.value.ChildSeries">
-                                                    {{subprop.key}}&nbsp; &nbsp; &nbsp;<span class="text-secondary">{{getPathForInput(subprop.key, prop.value, prop.key)}}</span>
-                                                </div>
-                                        </div>
-                                    </div>
-                                </mat-list-item>
+                                <mat-list-item *ngFor="let prop of MachineData.Label['schema-in'] | keyvalue">{{prop.key}} &nbsp;&nbsp;<span class="text-secondary">({{getPropertyType(prop.value)}})</span></mat-list-item>
                             </mat-list>
                         </ng-container>
                     </mat-expansion-panel>
@@ -97,6 +85,9 @@
                         <mat-panel-title>
                             Docker Properties
                         </mat-panel-title>
+                        <div style="padding-top: 6px;">
+                            <mat-icon class="pointer mr-3" (click)="showHelpModal(1, $event)" matTooltip="Information about Docker Properties">info</mat-icon>
+                        </div>
                     </mat-expansion-panel-header>
                     <span style="color:red">{{schemStaticInfoErrorMsg}}</span>
                     <!-- <div id="dvStaticFieldInfo" style="width:100%;">
@@ -260,6 +251,9 @@
                         <mat-panel-title>
                             Data I/O
                         </mat-panel-title>
+                        <div style="padding-top: 6px;">
+                            <mat-icon class="pointer mr-3" (click)="showHelpModal(2, $event)" matTooltip="Information about Data I/O">info</mat-icon>
+                        </div>
                     </mat-expansion-panel-header>
                     <form #myForm="ngForm" novalidate (ngSubmit)="SaveJsonData(2)">
                         <div>
@@ -1099,38 +1093,30 @@
                         <mat-panel-title>
                             Machine Information
                         </mat-panel-title>
+                        <div style="padding-top: 6px;"> 
+                            <mat-icon class="pointer mr-3" (click)="showHelpModal(3, $event)" matTooltip="Information about Machine Info">info</mat-icon>
+                        </div>
                     </mat-expansion-panel-header>
                     <span style="color:red">{{labelInfoErrorMsg}}</span>
-                    <mat-card>
-                        <h6>
-                            <mat-form-field>
-                                <mat-label>Info Key</mat-label>
-                                <select matNativeControl [(ngModel)]="SelectedInfoKey" (change)="SelectInfoKey()">
-                                    <option value="">-- Select InfoKey --</option>
-                                    <option *ngFor="let propOption of infoSectionFields" value="{{propOption}}">{{propOption}}</option>
-                                </select>
-                            </mat-form-field>
-                            <mat-icon *ngIf="!IsNewInfoKeyAdded" class="pointer mr-3" style="float:right;" (click)="IsNewInfoKeyAdded=true;NewInfoKey='';NewInfoKeyValue='';NewInfoKeyValueType=1;NewInfoKeyValueMaxLength=1000" matTooltip="Add New Key">add</mat-icon>
-                        </h6>
-                    </mat-card>
+                    <div style="color: #ffd044; padding: 10px;">Fields with * are mandatory</div>
                     <div>
                         <div fxLayout="row" style="margin-right:20px" fxFlex="50%" fxFlex.gt-sm="50%">
                             <div fxLayout="column" fxFlex>
                                 <table class="example-full-width" cellspacing="10">
                                     <ng-container *ngFor="let recipient of infoSectionData; let i = index">
-                                        <tr *ngIf="i%2==0&& recipient!=null">
+                                        <tr *ngIf="i%2==0&& recipient!=null && !recipient.isThroughInfoDropdown">
                                             <td valign="top" style="width: 230px;padding-top:16px; padding-right: 10px;">
                                                 <mat-label *ngIf="recipient['InfoKey']!='CPU Requirement' && recipient['InfoKey']!='RAM Requirement' && recipient['InfoKey']!='Estimated Run Time'">
-                                                    {{recipient['InfoKey']}} :
+                                                    {{recipient['InfoKey']}} : <span style="color: red"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='CPU Requirement'">
-                                                    CPU Requirement (VCPU) :
+                                                    CPU Requirement (VCPU) : <span style="color: red"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='RAM Requirement'">
-                                                    RAM Requirement (GB) :
+                                                    RAM Requirement (GB) : <span style="color: red"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='Estimated Run Time'">
-                                                    Estimated Run Time (Min) :
+                                                    Estimated Run Time (Min) : <span style="color: red"> *</span>
                                                 </mat-label>
                                             </td>
                                             <td width="100px" *ngIf="recipient['InfoValueType']==1">
@@ -1236,19 +1222,19 @@
                             <div fxLayout="column" fxFlex>
                                 <table class="example-full-width" cellspacing="10">
                                     <ng-container *ngFor="let recipient of infoSectionData; let i = index">
-                                        <tr *ngIf="i%2!=0&&recipient!=null">
+                                        <tr *ngIf="i%2!=0&&recipient!=null&& !recipient.isThroughInfoDropdown">
                                             <td valign="top" style="width: 230px;padding-top:16px; padding-right: 10px;">
                                                 <mat-label *ngIf="recipient['InfoKey']!='CPU Requirement' && recipient['InfoKey']!='RAM Requirement' && recipient['InfoKey']!='Estimated Run Time'">
-                                                    {{recipient['InfoKey']}} :
+                                                    {{recipient['InfoKey']}} : <span style="color: red"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='CPU Requirement'">
-                                                    CPU Requirement (VCPU) :
+                                                    CPU Requirement (VCPU) : <span style="color: red"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='RAM Requirement'">
-                                                    RAM Requirement (GB) :
+                                                    RAM Requirement (GB) : <span style="color: red"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='Estimated Run Time'">
-                                                    Estimated Run Time (Min) :
+                                                    Estimated Run Time (Min) : <span style="color: red"> *</span>
                                                 </mat-label>
                                             </td>
                                             <td width="100px" *ngIf="recipient['InfoValueType']==1">
@@ -1356,96 +1342,111 @@
                             </div>
                         </div>
                     </div>
+                    <br/>
+                    <mat-card>
+                        <h6>
+                            <mat-form-field>
+                                <mat-label>Info Key</mat-label>
+                                <select matNativeControl [(ngModel)]="SelectedInfoKey" (change)="SelectInfoKey()">
+                                    <option value="">-- Select InfoKey --</option>
+                                    <option *ngFor="let propOption of infoSectionFields" value="{{propOption}}">{{propOption}}</option>
+                                </select>
+                            </mat-form-field>
+                            <mat-icon *ngIf="!IsNewInfoKeyAdded" class="pointer mr-3" style="float:right;" (click)="IsNewInfoKeyAdded=true;NewInfoKey='';NewInfoKeyValue='';NewInfoKeyValueType=1;NewInfoKeyValueMaxLength=1000" matTooltip="Add New Key">add</mat-icon>
+                        </h6>
+                    </mat-card>
 
                     <table class="example-full-width" cellspacing="10">
-                        <tr *ngIf="SelectedInfoKey!=''">
-                            <td valign="top" style="width: 230px;padding-top:16px; padding-right: 10px;">
-                                <label *ngIf="SelectedInfoValueType!=4">{{SelectedInfoKey}} :</label>
-                                <label *ngIf="SelectedInfoValueType==4">{{SelectedInfoKey}} ({{infoSectionFieldsConfig[SelectedInfoKey]['SliderLabel']}}) :</label>
-                            </td>
-                            <td *ngIf="IsSelectedKeyOptionAdded==true && (SelectedInfoValueType==6 || SelectedInfoValueType==7)">
-                                <mat-form-field class="example-full-width" style="width:250px">
-                                    <input matInput maxlength="200" [(ngModel)]="SelectedKeyOptionText" />
-                                </mat-form-field>
-                                <mat-icon class="pointer mr-3" style="font-size:20px" (click)="SaveOption()" matTooltip="Save">done</mat-icon>
-                                <mat-icon class="pointer mr-3" style="font-size:20px" (click)="IsSelectedKeyOptionAdded=false;SelectedKeyOptionText=''" matTooltip="Cancel">close</mat-icon>
-                            </td>
-                            <td *ngIf="SelectedInfoValueType==1" width="200px">
-                                <mat-form-field class="example-full-width" style="width:250px">
-                                    <input matInput maxlength="{{SelectedInfoKeyValueMaxLength}}" #selectedInfoKeyValue [(ngModel)]="SelectedInfoKeyValue" />
-                                    <mat-hint align="end">{{selectedInfoKeyValue.value.length}} / {{SelectedInfoKeyValueMaxLength}}</mat-hint>
-                                </mat-form-field><br />
-                                <small *ngIf="SelectedInfoKey=='Link to Sample Data'">Diclaimer: Need to check with legal(Update Needed)</small>
-                            </td>
-                            <td *ngIf="SelectedInfoValueType==2" width="200px">
-                                <mat-form-field class="example-full-width" style="width:250px">
-                                    <input type="number" matInput maxlength="200" [(ngModel)]="SelectedInfoKeyValue" />
-                                </mat-form-field>
-                            </td>
-                            <td style="padding-top:16px" *ngIf="SelectedInfoValueType==3" width="200px">
-                                <mat-radio-group (ngModelChange)="GetAdditionalInfoField($event)" [(ngModel)]="SelectedInfoKeyValue" aria-label="Select an option">
-                                    <mat-radio-button value="1">Yes</mat-radio-button>
-                                    &nbsp;&nbsp;
-                                    <mat-radio-button value="0">No</mat-radio-button>
-                                </mat-radio-group>
-                                <div *ngIf="SelectedInfoFieldAdditionalTextVisibility==true">
-                                    <mat-form-field class="example-full-width" style="width:255px">
-                                        <textarea placeholder="{{infoSectionFieldsConfig[SelectedInfoKey]['PlaceHolder']}}" rows="{{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength'] == 60 ? 2 : 5}}" cols="50" matInput #additionalInfoLength maxlength="{{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="SelectedInfoFieldAdditionalText"></textarea>
-                                        <mat-hint align="end">{{additionalInfoLength.value.length}} / {{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}</mat-hint>
-
-                                        <!--<input matInput maxlength="{{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="SelectedInfoFieldAdditionalText" />-->
+                        <ng-container *ngFor="let item of infoSectionDataSecondary;let mIndex=index">
+                            <tr *ngIf="item.SelectedInfoKey!=''">
+                                <td valign="top" style="width: 230px;padding-top:16px; padding-right: 10px;">
+                                    <label *ngIf="item.SelectedInfoValueType!=4">{{item.SelectedInfoKey}} :</label>
+                                    <label *ngIf="item.SelectedInfoValueType==4">{{item.SelectedInfoKey}} ({{infoSectionFieldsConfig[item.SelectedInfoKey]['SliderLabel']}}) :</label>
+                                </td>
+                                <td *ngIf="item.IsSelectedKeyOptionAdded==true && (item.SelectedInfoValueType==6 || item.SelectedInfoValueType==7)">
+                                    <mat-form-field class="example-full-width" style="width:250px">
+                                        <input matInput maxlength="200" [(ngModel)]="item.SelectedKeyOptionText" />
                                     </mat-form-field>
-                                </div>
-                            </td>
-                            <td *ngIf="SelectedInfoValueType==4" width="200px">
-                                <span>{{SelectedSliderMinValue}}</span>
-                                <mat-slider thumbLabel [displayWith]="formatLabel" tickInterval="1" min="{{SelectedSliderMinValue}}" max="{{SelectedSliderMaxValue}}" [(ngModel)]="SelectedInfoKeyValue"></mat-slider>
-                                <span>{{SelectedSliderMaxValue}}</span>
-                            </td>
-                            <td *ngIf="SelectedInfoValueType==5" width="200px">
-
-                                <mat-form-field class="example-full-width" style="width:125px">
-                                    <input type="number" placeholder="Minimum Value" matInput maxlength="200" [(ngModel)]="SelectedSliderMinValue" />
-                                </mat-form-field>
-                                <mat-form-field class="example-full-width" style="width:125px">
-                                    <input type="number" placeholder="Maximum Value" matInput maxlength="200" [(ngModel)]="SelectedSliderMaxValue" />
-                                </mat-form-field>
-                            </td>
-                            <td *ngIf="SelectedInfoValueType==6 && IsSelectedKeyOptionAdded==false" width="200px">
-                                <mat-form-field>
-                                    <select matNativeControl (ngModelChange)="GetAdditionalInfoField($event)" [(ngModel)]="SelectedInfoKeyValue" [ngModelOptions]="{standalone: true}">
-                                        <option *ngFor="let propOption of SelectedInfoKeyValueOptions" value="{{propOption}}">{{propOption}}</option>
-                                    </select>
-                                </mat-form-field>
-                                <div *ngIf="SelectedInfoFieldAdditionalTextVisibility==true">
-                                    <mat-form-field class="example-full-width" style="width:255px">
-                                        <textarea placeholder="Enter {{SelectedInfoKeyValue}} number" rows="5" cols="50" matInput #additionalInfoLength maxlength="{{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="SelectedInfoFieldAdditionalText"></textarea>
-                                        <mat-hint align="end">{{additionalInfoLength.value.length}} / {{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}</mat-hint>
-
-
-
-                                        <!--<input matInput maxlength="{{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="SelectedInfoFieldAdditionalText" />-->
+                                    <mat-icon class="pointer mr-3" style="font-size:20px" (click)="SaveOption(item)" matTooltip="Save">done</mat-icon>
+                                    <mat-icon class="pointer mr-3" style="font-size:20px" (click)="item.IsSelectedKeyOptionAdded=false;item.SelectedKeyOptionText=''" matTooltip="Cancel">close</mat-icon>
+                                </td>
+                                <td *ngIf="item.SelectedInfoValueType==1" width="200px">
+                                    <mat-form-field class="example-full-width" style="width:250px">
+                                        <input matInput maxlength="{{item.SelectedInfoKeyValueMaxLength}}" #selectedInfoKeyValue [(ngModel)]="item.SelectedInfoKeyValue" />
+                                        <mat-hint align="end">{{selectedInfoKeyValue.value.length}} / {{item.SelectedInfoKeyValueMaxLength}}</mat-hint>
+                                    </mat-form-field><br />
+                                    <small *ngIf="item.SelectedInfoKey=='Link to Sample Data'">Diclaimer: Need to check with legal(Update Needed)</small>
+                                </td>
+                                <td *ngIf="item.SelectedInfoValueType==2" width="200px">
+                                    <mat-form-field class="example-full-width" style="width:250px">
+                                        <input type="number" matInput maxlength="200" [(ngModel)]="item.SelectedInfoKeyValue" />
                                     </mat-form-field>
-                                </div>
-                            </td>
-                            <td *ngIf="SelectedInfoValueType==7 && IsSelectedKeyOptionAdded==false" width="250px">
-                                <div *ngFor="let item of SelectedMultipleInfo;let i=index">
-                                    <mat-form-field class="example-full-width" style="width:100px">
-                                        <input matInput maxlength="200" placeholder="Name" [(ngModel)]="item.key" />
-                                    </mat-form-field>
-                                    <mat-form-field class="example-full-width" style="width:100px">
-                                        <input matInput maxlength="200" placeholder="Value" [(ngModel)]="item.value" />
-                                    </mat-form-field>
-                                    <mat-icon class="pointer mr-3" (click)="DeleteDynamicInfoKey(i,1)" style="font-size:20px" matTooltip="Delete Sub Key">remove_circle</mat-icon>
-                                </div>
-                            </td>
-                            <td>
-                                <mat-icon class="pointer mr-3" (click)="DeleteInfoKey(-1,SelectedInfoKey)" style="font-size:20px" matTooltip="Delete Key">
-                                    close
-                                </mat-icon>
+                                </td>
+                                <td style="padding-top:16px" *ngIf="item.SelectedInfoValueType==3" width="200px">
+                                    <mat-radio-group (ngModelChange)="GetAdditionalInfoField($event, item)" [(ngModel)]="item.SelectedInfoKeyValue" aria-label="Select an option">
+                                        <mat-radio-button value="1">Yes</mat-radio-button>
+                                        &nbsp;&nbsp;
+                                        <mat-radio-button value="0">No</mat-radio-button>
+                                    </mat-radio-group>
+                                    <div *ngIf="item.SelectedInfoFieldAdditionalTextVisibility==true">
+                                        <mat-form-field class="example-full-width" style="width:255px">
+                                            <textarea placeholder="{{infoSectionFieldsConfig[item.SelectedInfoKey]['PlaceHolder']}}" rows="{{infoSectionFieldsConfig[item.SelectedInfoKey]['AdditionalInfoMaxLength'] == 60 ? 2 : 5}}" cols="50" matInput #additionalInfoLength maxlength="{{infoSectionFieldsConfig[item.SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="item.SelectedInfoFieldAdditionalText"></textarea>
+                                            <mat-hint align="end">{{additionalInfoLength.value.length}} / {{infoSectionFieldsConfig[item.SelectedInfoKey]['AdditionalInfoMaxLength']}}</mat-hint>
 
-                            </td>
-                        </tr>
+                                            <!--<input matInput maxlength="{{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="SelectedInfoFieldAdditionalText" />-->
+                                        </mat-form-field>
+                                    </div>
+                                </td>
+                                <td *ngIf="item.SelectedInfoValueType==4" width="200px">
+                                    <span>{{item.SelectedSliderMinValue}}</span>
+                                    <mat-slider thumbLabel [displayWith]="formatLabel" tickInterval="1" min="{{item.SelectedSliderMinValue}}" max="{{item.SelectedSliderMaxValue}}" [(ngModel)]="item.SelectedInfoKeyValue"></mat-slider>
+                                    <span>{{item.SelectedSliderMaxValue}}</span>
+                                </td>
+                                <td *ngIf="item.SelectedInfoValueType==5" width="200px">
+
+                                    <mat-form-field class="example-full-width" style="width:125px">
+                                        <input type="number" placeholder="Minimum Value" matInput maxlength="200" [(ngModel)]="item.SelectedSliderMinValue" />
+                                    </mat-form-field>
+                                    <mat-form-field class="example-full-width" style="width:125px">
+                                        <input type="number" placeholder="Maximum Value" matInput maxlength="200" [(ngModel)]="item.SelectedSliderMaxValue" />
+                                    </mat-form-field>
+                                </td>
+                                <td *ngIf="item.SelectedInfoValueType==6 && item.IsSelectedKeyOptionAdded==false" width="200px">
+                                    <mat-form-field>
+                                        <select matNativeControl (ngModelChange)="GetAdditionalInfoField($event, item)" [(ngModel)]="item.SelectedInfoKeyValue" [ngModelOptions]="{standalone: true}">
+                                            <option *ngFor="let propOption of item.SelectedInfoKeyValueOptions" value="{{propOption}}">{{propOption}}</option>
+                                        </select>
+                                    </mat-form-field>
+                                    <div *ngIf="item.SelectedInfoFieldAdditionalTextVisibility==true">
+                                        <mat-form-field class="example-full-width" style="width:255px">
+                                            <textarea placeholder="Enter {{item.SelectedInfoKeyValue}} number" rows="5" cols="50" matInput #additionalInfoLength maxlength="{{infoSectionFieldsConfig[item.SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="item.SelectedInfoFieldAdditionalText"></textarea>
+                                            <mat-hint align="end">{{additionalInfoLength.value.length}} / {{infoSectionFieldsConfig[item.SelectedInfoKey]['AdditionalInfoMaxLength']}}</mat-hint>
+
+
+
+                                            <!--<input matInput maxlength="{{infoSectionFieldsConfig[SelectedInfoKey]['AdditionalInfoMaxLength']}}" [(ngModel)]="SelectedInfoFieldAdditionalText" />-->
+                                        </mat-form-field>
+                                    </div>
+                                </td>
+                                <td *ngIf="item.SelectedInfoValueType==7 && item.IsSelectedKeyOptionAdded==false" width="250px">
+                                    <div *ngFor="let itemc of item.SelectedMultipleInfo;let i=index">
+                                        <mat-form-field class="example-full-width" style="width:100px">
+                                            <input matInput maxlength="200" placeholder="Name" [(ngModel)]="itemc.key" />
+                                        </mat-form-field>
+                                        <mat-form-field class="example-full-width" style="width:100px">
+                                            <input matInput maxlength="200" placeholder="Value" [(ngModel)]="itemc.value" />
+                                        </mat-form-field>
+                                        <mat-icon class="pointer mr-3" (click)="DeleteDynamicInfoKey(i,1, item)" style="font-size:20px" matTooltip="Delete Sub Key">remove_circle</mat-icon>
+                                    </div>
+                                </td>
+                                <td>
+                                    <mat-icon class="pointer mr-3" (click)="DeleteInfoKey(-1,item.SelectedInfoKey, mIndex)" style="font-size:20px" matTooltip="Delete Key">
+                                        close
+                                    </mat-icon>
+
+                                </td>
+                            </tr>
+                        </ng-container>
                         <tr *ngIf="IsNewInfoKeyAdded">
                             <td valign="top" style="width: 230px;padding-right: 10px;">
                                 <mat-form-field class="example-full-width">
