@@ -17,6 +17,7 @@ import { HostListener } from '@angular/core';
 import { MatTabGroup } from '@angular/material/tabs';
 import { MatFormFieldControl } from '@angular/material/form-field';
 import { FormControl, Form, FormBuilder, NgForm } from '@angular/forms';
+import { ShowHelpDialogComponent } from '../modals/showHelpDialog.component';
 //import { setTimeout } from 'timers';
 
 
@@ -402,6 +403,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     configKeys: any = ['Product Name', 'Release Version', 'Title', 'Organization', 'FDA Status', 'CE Mark Status', 'Health Canada License Status', 'Japan Certification Status'];
     infoSectionData: any = [];
+    infoSectionDataSecondary: any = [];
     SelectedInfoKey: string = '';
     SelectedInfoKeyValue: string = '';
     SelectedInfoKeyValueMaxLength: number;
@@ -676,6 +678,34 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         this.BindDeploymentData();
     }
 
+    showHelpModal(step: number, event: any) {
+        let title = '';
+        let link = '';
+        if (step === 1) {
+            title = 'Docker Properties';
+            link = 'https://github.com/EnvoyAI/examples/blob/master/FAQ.md';
+        }
+        if (step === 2) {
+            title = 'Data I/O';
+            link = 'https://github.com/EnvoyAI/examples/blob/master/TYPES.md';
+        }
+        if (step === 3) {
+            title = 'Machine Information';
+            link = 'https://github.com/EnvoyAI/examples/blob/master/REF.md';
+        }
+
+        let dialogConfig = new MatDialogConfig();
+        dialogConfig.minWidth = "50vw";
+        dialogConfig.minHeight = "50vh";
+        dialogConfig.backdropClass = 'overlay-backdrop-darker';
+        dialogConfig.data = { title, link, helpFor: 'labelCreator' };
+
+
+        let dialogRef = this.dialog.open(ShowHelpDialogComponent, dialogConfig);
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
     BindMachine() {
         var payload = {};
         this.DeployedMachine = {};
@@ -830,6 +860,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 //}
             },
             error => {
+                
             });
     }
 
@@ -1058,20 +1089,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         return 'UNKNOWN';
     }
-
-    getPathForInput(key: string, value: any, parentKey: any) {
-        if (!key || !value || !value.type) return '';
-        let prefix = '/envoy/input/';
-        if (parentKey) {
-            prefix += parentKey + '/';
-        }
-        let val = prefix + key;
-        if (value.type.toLowerCase().indexOf('series') != -1 || value.type.toLowerCase().indexOf('study') != -1) {
-            val += '/';
-        }
-        return val;
-    }
-
     showButtonForProperty(value: any) {
         var propertyType = this.getPropertyType(value);
 
@@ -1336,6 +1353,31 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             }
         }
 
+        this.infoSectionDataSecondary = [...this.infoSectionData.filter(item => item.isThroughInfoDropdown === true)].map(i => {return {...i}});
+
+        this.infoSectionDataSecondary.forEach(item =>{
+                    item.SelectedInfoKey = item.InfoKey
+                    delete item.InfoKey
+                    item.SelectedInfoKeyValue = item.InfoValue
+                    delete item.InfoValue
+                    item.SelectedInfoValueType = item.InfoValueType
+                    delete item.InfoValueType
+                    item.SelectedInfoKeyValueMaxLength = item.MaxLength
+                    delete item.MaxLength
+                    item.IsCustomKey = false;
+                    item.SelectedSliderMinValue = item.SliderMin
+                    delete item.SliderMin
+                    item.SelectedSliderMaxValue= item.SliderMax
+                    delete item.SliderMax
+                    if (item.AdditionalInfoText) {
+                        item.SelectedInfoFieldAdditionalText = item.AdditionalInfoText
+                        item.SelectedInfoFieldAdditionalTextVisibility = true;
+                        delete item.AdditionalInfoText
+                    }
+                    item.SelectedInfoKeyValueOptions = item.InfoValueOptions
+                    delete item.InfoValueOptions
+            })
+
         this.infoSectionFields = this.infoSectionFields.filter(function (el) {
             return configKeys2.indexOf(el) < 0;
         })
@@ -1395,55 +1437,62 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
 
     //This function is used to set the Additional info fiValidateLabelInfoeld visisble
-    GetAdditionalInfoField(value) {
-        if (this.infoSectionFieldsConfig[this.SelectedInfoKey]['ShowInfoSectionOnValue'] != 'undefined' && this.infoSectionFieldsConfig[this.SelectedInfoKey]["ShowInfoSectionOnValue"].indexOf(value) > -1) {
-            this.SelectedInfoFieldAdditionalTextVisibility = true;
+    GetAdditionalInfoField(value, item: any) {
+        if (this.infoSectionFieldsConfig[item.SelectedInfoKey]['ShowInfoSectionOnValue'] != 'undefined' && this.infoSectionFieldsConfig[item.SelectedInfoKey]["ShowInfoSectionOnValue"].indexOf(value) > -1) {
+            item.SelectedInfoFieldAdditionalTextVisibility = true;
         }
         else {
-            this.SelectedInfoFieldAdditionalTextVisibility = false;
+            item.SelectedInfoFieldAdditionalTextVisibility = false;
         }
     }
     //Information Section
     SelectInfoKey() {
-        this.SelectedInfoFieldAdditionalText = ''
-        this.SelectedInfoFieldAdditionalTextVisibility = false;
+        let obj: any = {};
+        obj.SelectedInfoKey = this.SelectedInfoKey;
+        obj.SelectedInfoFieldAdditionalText = '';
+        obj.SelectedInfoFieldAdditionalTextVisibility = false;
         var valueType = 1;
-        if (this.SelectedInfoKey in this.infoSectionFieldsConfig) {
-            valueType = this.infoSectionFieldsConfig[this.SelectedInfoKey]["Type"];
+        if (obj.SelectedInfoKey in this.infoSectionFieldsConfig) {
+            valueType = this.infoSectionFieldsConfig[obj.SelectedInfoKey]["Type"];
         }
-        this.SelectedInfoKeyValue = '';
-        this.SelectedInfoValueType = valueType;
-        if (this.SelectedInfoValueType == ValueType.FreeText) {
+        obj.SelectedInfoKeyValue = '';
+        obj.SelectedInfoValueType = valueType;
+        if (obj.SelectedInfoValueType == ValueType.FreeText) {
             var len = 1000;
-            if (this.SelectedInfoKey in this.infoSectionFieldsConfig) {
-                len = this.infoSectionFieldsConfig[this.SelectedInfoKey]["MaxLength"];
+            if (obj.SelectedInfoKey in this.infoSectionFieldsConfig) {
+                len = this.infoSectionFieldsConfig[obj.SelectedInfoKey]["MaxLength"];
             }
-            this.SelectedInfoKeyValueMaxLength = len;
+            obj.SelectedInfoKeyValueMaxLength = len;
         }
 
-        if (this.SelectedInfoValueType == ValueType.Slider) {
+        if (obj.SelectedInfoValueType == ValueType.Slider) {
             var minValue = 0;
             var maxValue = 1000;
 
-            if (this.SelectedInfoKey in this.infoSectionFieldsConfig) {
-                minValue = this.infoSectionFieldsConfig[this.SelectedInfoKey]["MinValue"];
-                maxValue = this.infoSectionFieldsConfig[this.SelectedInfoKey]["MaxValue"];
+            if (obj.SelectedInfoKey in this.infoSectionFieldsConfig) {
+                minValue = this.infoSectionFieldsConfig[obj.SelectedInfoKey]["MinValue"];
+                maxValue = this.infoSectionFieldsConfig[obj.SelectedInfoKey]["MaxValue"];
             }
-            this.SelectedSliderMaxValue = maxValue;
-            this.SelectedSliderMinValue = minValue;
-            if (this.SelectedInfoKey == "Estimated Run Time") {
-                this.SelectedInfoKeyValue = "15";
+            obj.SelectedSliderMaxValue = maxValue;
+            obj.SelectedSliderMinValue = minValue;
+            if (obj.SelectedInfoKey == "Estimated Run Time") {
+                obj.SelectedInfoKeyValue = "15";
             }
 
         }
 
-        if (this.SelectedInfoValueType == ValueType.Select) {
-            this.SelectedInfoKeyValueOptions = this.infoSectionFieldsConfig[this.SelectedInfoKey]["Options"];
+        if (obj.SelectedInfoValueType == ValueType.Select) {
+            obj.SelectedInfoKeyValueOptions = this.infoSectionFieldsConfig[obj.SelectedInfoKey]["Options"];
         }
 
-        if (this.SelectedInfoValueType == ValueType.BinarySelector) {
-            this.SelectedInfoKeyValue = "0";
+        if (obj.SelectedInfoValueType == ValueType.BinarySelector) {
+            obj.SelectedInfoKeyValue = "0";
         }
+        this.infoSectionFields = this.infoSectionFields.filter(i => i !== obj.SelectedInfoKey);
+        this.infoSectionDataSecondary.push(obj);
+        setTimeout(() => {
+            this.SelectedInfoKey = '';
+        }, 0);
     }
 
     //This method is used to save the JSON data
@@ -1485,6 +1534,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     //This method is used to validate the label info
     ValidateLabelInfo() {
         var infoText = this.SelectedInfoKeyValue;
+        this.infoSectionData = this.infoSectionData.filter(i => !i.isThroughInfoDropdown );
         this.labelInfoErrorMsg = "";
         var infoNames = [];
         var newInfoObject = {};
@@ -1562,60 +1612,63 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     newInfoObject = { "InfoKey": this.NewInfoKey, "InfoValue": this.NewInfoKeyValue, "InfoValueType": this.NewInfoKeyValueType, "InfoValueOptions": this.NewInfoKeyValueOptions };
                 }
 
-                this.infoSectionData.push(newInfoObject);
+                this.infoSectionData.push({...newInfoObject, isThroughInfoDropdown: true });
             }
         }
 
+        // this.infoSectionDataSecondary.forEach(item => {
+        //     if (item.SelectedInfoKey != "" && item.SelectedInfoKeyValue == "" && item.SelectedInfoValueType != ValueType.Slider && item.SelectedInfoValueType != ValueType.BinarySelector && item.SelectedInfoValueType != ValueType.MinMaxSlider && item.SelectedInfoValueType != ValueType.Select && item.SelectedInfoValueType != ValueType.MultiSelect) {
+        //         this.labelInfoErrorMsg = "Error: Please provide info key value";
+        //     }
+        // })
+        if (this.infoSectionDataSecondary.length > 0 ) {
+            this.infoSectionDataSecondary.forEach(item =>{
 
-        if (this.SelectedInfoKey != "" && infoText == "" && this.SelectedInfoValueType != ValueType.Slider && this.SelectedInfoValueType != ValueType.BinarySelector && this.SelectedInfoValueType != ValueType.MinMaxSlider && this.SelectedInfoValueType != ValueType.Select && this.SelectedInfoValueType != ValueType.MultiSelect) {
-            this.labelInfoErrorMsg = "Error: Please provide info key value";
-        }
-        else if (this.SelectedInfoKey != "") {
-
-            if (this.SelectedInfoValueType == ValueType.FreeText) {
-                selectedInfoObject = {
-                    "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "MaxLength": this.SelectedInfoKeyValueMaxLength
-                };
-            }
-            else if (this.SelectedInfoValueType == ValueType.Slider) {
-                selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "SliderMin": this.SelectedSliderMinValue, "SliderMax": this.SelectedSliderMaxValue, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType };
-            }
-            else if (this.SelectedInfoValueType == ValueType.BinarySelector) {
-                if (this.SelectedInfoFieldAdditionalTextVisibility == true) {
-                    if (this.SelectedInfoFieldAdditionalText == "") {
-                        this.labelInfoErrorMsg = "Error: Please provide additional info";
-                        return;
+                if (item.SelectedInfoValueType == ValueType.FreeText) {
+                    selectedInfoObject = {
+                        "InfoKey": item.SelectedInfoKey, "IsCustomKey": false, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType, "MaxLength": item.SelectedInfoKeyValueMaxLength
+                    };
+                }
+                else if (item.SelectedInfoValueType == ValueType.Slider) {
+                    selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "IsCustomKey": false, "SliderMin": item.SelectedSliderMinValue, "SliderMax": item.SelectedSliderMaxValue, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType };
+                }
+                else if (item.SelectedInfoValueType == ValueType.BinarySelector) {
+                    if (item.SelectedInfoFieldAdditionalTextVisibility == true) {
+                        if (item.SelectedInfoFieldAdditionalText == "") {
+                            this.labelInfoErrorMsg = "Error: Please provide additional info";
+                            return;
+                        }
+                        else {
+                            selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "IsCustomKey": false, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType, "AdditionalInfoText": item.SelectedInfoFieldAdditionalText };
+                        }
                     }
                     else {
-                        selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "AdditionalInfoText": this.SelectedInfoFieldAdditionalText };
+                        selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "IsCustomKey": false, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType };
+                    }
+                    //selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "IsCustomKey": false };
+                }
+                else if (item.SelectedInfoValueType == ValueType.MinMaxSlider) {
+                    selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "InfoValue": "Min:" + item.SelectedSliderMinValue + " ; Max:" + item.SelectedSliderMaxValue, "InfoValueType": item.SelectedInfoValueType, "SliderMin": item.SelectedSliderMinValue, "SliderMax": item.SelectedSliderMaxValue };
+                }
+                else if (item.SelectedInfoValueType == ValueType.Select || item.SelectedInfoValueType == ValueType.MultiSelect) {
+                    if (item.SelectedInfoFieldAdditionalTextVisibility == true) {
+                        if (item.SelectedInfoFieldAdditionalText == "") {
+                            this.labelInfoErrorMsg = "Error: Please provide additional info";
+                            return;
+                        }
+                        else {
+                            selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "IsCustomKey": false, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType, "AdditionalInfoText": item.SelectedInfoFieldAdditionalText };
+                        }
+                    }
+                    else {
+                        selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "IsCustomKey": false, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType };
                     }
                 }
                 else {
-                    selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType };
+                    selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType, "InfoValueOptions": item.SelectedInfoKeyValueOptions };
                 }
-                //selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "IsCustomKey": false };
-            }
-            else if (this.SelectedInfoValueType == ValueType.MinMaxSlider) {
-                selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "InfoValue": "Min:" + this.SelectedSliderMinValue + " ; Max:" + this.SelectedSliderMaxValue, "InfoValueType": this.SelectedInfoValueType, "SliderMin": this.SelectedSliderMinValue, "SliderMax": this.SelectedSliderMaxValue };
-            }
-            else if (this.SelectedInfoValueType == ValueType.Select || this.SelectedInfoValueType == ValueType.MultiSelect) {
-                if (this.SelectedInfoFieldAdditionalTextVisibility == true) {
-                    if (this.SelectedInfoFieldAdditionalText == "") {
-                        this.labelInfoErrorMsg = "Error: Please provide additional info";
-                        return;
-                    }
-                    else {
-                        selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "AdditionalInfoText": this.SelectedInfoFieldAdditionalText };
-                    }
-                }
-                else {
-                    selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "IsCustomKey": false, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType };
-                }
-            }
-            else {
-                selectedInfoObject = { "InfoKey": this.SelectedInfoKey, "InfoValue": this.SelectedInfoKeyValue, "InfoValueType": this.SelectedInfoValueType, "InfoValueOptions": this.SelectedInfoKeyValueOptions };
-            }
-            this.infoSectionData.push(selectedInfoObject);
+                this.infoSectionData.push({...selectedInfoObject, isThroughInfoDropdown: true});
+            })
         }
 
 
@@ -1633,15 +1686,15 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     }
 
-    SaveOption() {
+    SaveOption(item: any) {
 
-        if (this.SelectedKeyOptionText == "") {
+        if (item.SelectedKeyOptionText == "") {
             this.labelInfoErrorMsg = "Error: Please provide option value";
             return;
         }
-        this.SelectedInfoKeyValueOptions.push(this.SelectedKeyOptionText);
-        this.IsSelectedKeyOptionAdded = false;
-        this.SelectedKeyOptionText = '';
+        item.SelectedInfoKeyValueOptions.push(item.SelectedKeyOptionText);
+        item.IsSelectedKeyOptionAdded = false;
+        item.SelectedKeyOptionText = '';
     }
 
     SaveNewKeyOption() {
@@ -1880,7 +1933,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     AddChildSeriesDicomOut(type, i) {
         this.hasDataChanged = true;
-        let noOfElements = (this.customSchemaOutDicomDict["ChildSeries"] || []).length;
+        let noOfElements = (this.customSchemaOutDicomDict[i]["ChildSeries"] || []).length;
         let key = this.DicomBaseSubKeyValue + (noOfElements + 1)
         var newObj = { key, value: "" }
         this.customSchemaOutDicomDict[i]["ChildSeries"].push(newObj);
@@ -1965,10 +2018,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
 
     //Remove the info key dynamically
-    DeleteDynamicInfoKey(index, type) {
-        if (type == 1) {
+    DeleteDynamicInfoKey(index, type, item) {
+        if (type == 1 && item !== undefined && item != null) {
 
-            this.SelectedMultipleInfo.splice(index, 1);
+            item.SelectedMultipleInfo.splice(index, 1);
         }
         else {
 
@@ -2568,8 +2621,13 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             error => { });
     }
 
-    DeleteInfoKey(index, key) {
-
+    DeleteInfoKey(index, key, mIndex) {
+        if (mIndex !== null && mIndex !== undefined) {
+            this.infoSectionDataSecondary.splice(mIndex, 1);
+            let keys = this.infoSectionDataSecondary.map(i => i.SelectedInfoKey);
+            this.infoSectionFields = this.infoSectionFields_copy.filter(i => keys.indexOf(i) === -1);
+            return;
+        }
         //delete this.MachineData.Label.info[index];
         if (index > -1) {
             this.MachineData.Label.info.splice(index, 1);
