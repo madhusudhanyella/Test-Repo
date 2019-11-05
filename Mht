@@ -1093,12 +1093,12 @@
                         <mat-panel-title>
                             Machine Information
                         </mat-panel-title>
-                        <div style="padding-top: 6px;"> 
+                        <div style="padding-top: 6px;">
                             <mat-icon class="pointer mr-3" (click)="showHelpModal(3, $event)" matTooltip="Information about Machine Info">info</mat-icon>
                         </div>
                     </mat-expansion-panel-header>
                     <span style="color:red">{{labelInfoErrorMsg}}</span>
-                    <div style="color: #ffd044; padding: 10px;">Fields with * are mandatory</div>
+                    <div style="color: #ffd044; padding: 10px;padding-left:0px;">Note: Fields marked with a star <span style="color:#f44336;font-size: 14px;font-weight: 700;">( * )</span> are required.</div>
                     <div>
                         <div fxLayout="row" style="margin-right:20px" fxFlex="50%" fxFlex.gt-sm="50%">
                             <div fxLayout="column" fxFlex>
@@ -1107,16 +1107,16 @@
                                         <tr *ngIf="i%2==0&& recipient!=null && !recipient.isThroughInfoDropdown">
                                             <td valign="top" style="width: 230px;padding-top:16px; padding-right: 10px;">
                                                 <mat-label *ngIf="recipient['InfoKey']!='CPU Requirement' && recipient['InfoKey']!='RAM Requirement' && recipient['InfoKey']!='Estimated Run Time'">
-                                                    {{recipient['InfoKey']}} : <span style="color: red"> *</span>
+                                                    {{recipient['InfoKey']}} : <span style="color: #f44336;font-size: x-large;"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='CPU Requirement'">
-                                                    CPU Requirement (VCPU) : <span style="color: red"> *</span>
+                                                    CPU Requirement (VCPU) : <span style="color: #f44336;font-size: x-large;"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='RAM Requirement'">
-                                                    RAM Requirement (GB) : <span style="color: red"> *</span>
+                                                    RAM Requirement (GB) : <span style="color: #f44336;font-size: x-large;"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='Estimated Run Time'">
-                                                    Estimated Run Time (Min) : <span style="color: red"> *</span>
+                                                    Estimated Run Time (Min) : <span style="color: #f44336;font-size: x-large;" > *</span>
                                                 </mat-label>
                                             </td>
                                             <td width="100px" *ngIf="recipient['InfoValueType']==1">
@@ -1225,16 +1225,16 @@
                                         <tr *ngIf="i%2!=0&&recipient!=null&& !recipient.isThroughInfoDropdown">
                                             <td valign="top" style="width: 230px;padding-top:16px; padding-right: 10px;">
                                                 <mat-label *ngIf="recipient['InfoKey']!='CPU Requirement' && recipient['InfoKey']!='RAM Requirement' && recipient['InfoKey']!='Estimated Run Time'">
-                                                    {{recipient['InfoKey']}} : <span style="color: red"> *</span>
+                                                    {{recipient['InfoKey']}} : <span style="color: #f44336;font-size: x-large;"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='CPU Requirement'">
-                                                    CPU Requirement (VCPU) : <span style="color: red"> *</span>
+                                                    CPU Requirement (VCPU) : <span style="color: #f44336;font-size: x-large;"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='RAM Requirement'">
-                                                    RAM Requirement (GB) : <span style="color: red"> *</span>
+                                                    RAM Requirement (GB) : <span style="color: #f44336;font-size: x-large;"> *</span>
                                                 </mat-label>
                                                 <mat-label *ngIf="recipient['InfoKey']=='Estimated Run Time'">
-                                                    Estimated Run Time (Min) : <span style="color: red"> *</span>
+                                                    Estimated Run Time (Min) : <span style="color: #f44336;font-size: x-large;"> *</span>
                                                 </mat-label>
                                             </td>
                                             <td width="100px" *ngIf="recipient['InfoValueType']==1">
@@ -1342,17 +1342,18 @@
                             </div>
                         </div>
                     </div>
-                    <br/>
+                    <br />
+                    <div style="color: #ffd044; padding: 10px;padding-left:0px;">Note: Below fields are optional.</div>
                     <mat-card>
                         <h6>
                             <mat-form-field>
                                 <mat-label>Info Key</mat-label>
-                                <select matNativeControl [(ngModel)]="SelectedInfoKey" (change)="SelectInfoKey()">
+                                <select matNativeControl [ngClass]="'TxtCSS'" [(ngModel)]="SelectedInfoKey" (change)="SelectInfoKey()">
                                     <option value="">-- Select InfoKey --</option>
                                     <option *ngFor="let propOption of infoSectionFields" value="{{propOption}}">{{propOption}}</option>
                                 </select>
                             </mat-form-field>
-                            <mat-icon *ngIf="!IsNewInfoKeyAdded" class="pointer mr-3" style="float:right;" (click)="IsNewInfoKeyAdded=true;NewInfoKey='';NewInfoKeyValue='';NewInfoKeyValueType=1;NewInfoKeyValueMaxLength=1000" matTooltip="Add New Key">add</mat-icon>
+                            <mat-icon *ngIf="!IsNewInfoKeyAdded" class="pointer mr-3 TxtCSS" style="float:right;" (click)="IsNewInfoKeyAdded=true;NewInfoKey='';NewInfoKeyValue='';NewInfoKeyValueType=1;NewInfoKeyValueMaxLength=1000" matTooltip="Add New Key">add_circle</mat-icon>
                         </h6>
                     </mat-card>
 
