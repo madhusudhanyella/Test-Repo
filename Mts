@@ -685,18 +685,20 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         if (step === 1) {
             title = 'Docker Properties';
             link = 'https://github.com/EnvoyAI/examples/blob/master/FAQ.md';
-            desc = 'test data test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data ';
+            desc = 'In order to build an algorithm docker must contain the Runtime Parameter Lables ';
 
         }
         if (step === 2) {
             title = 'Data I/O';
             link = 'https://github.com/EnvoyAI/examples/blob/master/TYPES.md';
-            desc = 'test data test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data ';
-        }
+            desc = 'The data that algorithm evaluates is called its Input,the data that algorithm produces is called its Output.Both input and Output must have well defined type definitions called a Schema.';
+          
+       }
+
         if (step === 3) {
             title = 'Machine Information';
             link = 'https://github.com/EnvoyAI/examples/blob/master/REF.md';
-            desc = 'test data test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data  test data ';
+            desc = 'This describes about the machine information which is visible on the developer portal.';
         }
 
         let dialogConfig = new MatDialogConfig();
@@ -734,7 +736,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 if (this.MachineData.LabelJSON != "") {
                     var machineLabelInfo = JSON.parse(this.MachineData.LabelJSON);
                     this.machineVersion = machineLabelInfo['metadata-version'];
-                } 
+                }
 
                 if (returnData.PortalID != '')
                     this.currentPortalID = returnData.PortalID;
@@ -777,11 +779,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                         var selectedValue = '';
 
                         //if it's a dicomstudy type, get it's children
-                        if (this.MachineData.Label['schema-in'][k].type == 'DICOM Study')
-                        {
+                        if (this.MachineData.Label['schema-in'][k].type == 'DICOM Study') {
                             let currentStudy = this.MachineData.Label['schema-in'][k];
-                            for (var loop = 0; loop < currentStudy.ChildSeries.length; loop++)
-                            {
+                            for (var loop = 0; loop < currentStudy.ChildSeries.length; loop++) {
                                 let keyName = k + "/" + currentStudy.ChildSeries[loop].key;
                                 this.selectedInputItems[keyName] = { Name: keyName, SelectedValue: '' };
                             }
@@ -827,11 +827,9 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                         var selectedValue = '';
 
                         //if it's a dicomstudy type, get it's children
-                        if (this.MachineData.Label['schema-in'][k].type == 'DICOM Study')
-                        {
+                        if (this.MachineData.Label['schema-in'][k].type == 'DICOM Study') {
                             let currentStudy = this.MachineData.Label['schema-in'][k];
-                            for (var loop = 0; loop < currentStudy.ChildSeries.length; loop++)
-                            {
+                            for (var loop = 0; loop < currentStudy.ChildSeries.length; loop++) {
                                 let keyName = k + "/" + currentStudy.ChildSeries[loop].key;
                                 this.selectedInputItems[keyName] = { Name: keyName, SelectedValue: '' };
                             }
@@ -1357,30 +1355,30 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             }
         }
 
-        this.infoSectionDataSecondary = [...this.infoSectionData.filter(item => item.isThroughInfoDropdown === true)].map(i => {return {...i}});
+        this.infoSectionDataSecondary = [...this.infoSectionData.filter(item => item.isThroughInfoDropdown === true)].map(i => { return { ...i } });
 
-        this.infoSectionDataSecondary.forEach(item =>{
-                    item.SelectedInfoKey = item.InfoKey
-                    delete item.InfoKey
-                    item.SelectedInfoKeyValue = item.InfoValue
-                    delete item.InfoValue
-                    item.SelectedInfoValueType = item.InfoValueType
-                    delete item.InfoValueType
-                    item.SelectedInfoKeyValueMaxLength = item.MaxLength
-                    delete item.MaxLength
-                    item.IsCustomKey = false;
-                    item.SelectedSliderMinValue = item.SliderMin
-                    delete item.SliderMin
-                    item.SelectedSliderMaxValue= item.SliderMax
-                    delete item.SliderMax
-                    if (item.AdditionalInfoText) {
-                        item.SelectedInfoFieldAdditionalText = item.AdditionalInfoText
-                        item.SelectedInfoFieldAdditionalTextVisibility = true;
-                        delete item.AdditionalInfoText
-                    }
-                    item.SelectedInfoKeyValueOptions = item.InfoValueOptions
-                    delete item.InfoValueOptions
-            })
+        this.infoSectionDataSecondary.forEach(item => {
+            item.SelectedInfoKey = item.InfoKey
+            delete item.InfoKey
+            item.SelectedInfoKeyValue = item.InfoValue
+            delete item.InfoValue
+            item.SelectedInfoValueType = item.InfoValueType
+            delete item.InfoValueType
+            item.SelectedInfoKeyValueMaxLength = item.MaxLength
+            delete item.MaxLength
+            item.IsCustomKey = false;
+            item.SelectedSliderMinValue = item.SliderMin
+            delete item.SliderMin
+            item.SelectedSliderMaxValue = item.SliderMax
+            delete item.SliderMax
+            if (item.AdditionalInfoText) {
+                item.SelectedInfoFieldAdditionalText = item.AdditionalInfoText
+                item.SelectedInfoFieldAdditionalTextVisibility = true;
+                delete item.AdditionalInfoText
+            }
+            item.SelectedInfoKeyValueOptions = item.InfoValueOptions
+            delete item.InfoValueOptions
+        })
 
         this.infoSectionFields = this.infoSectionFields.filter(function (el) {
             return configKeys2.indexOf(el) < 0;
@@ -1538,7 +1536,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     //This method is used to validate the label info
     ValidateLabelInfo() {
         var infoText = this.SelectedInfoKeyValue;
-        this.infoSectionData = this.infoSectionData.filter(i => !i.isThroughInfoDropdown );
+        this.infoSectionData = this.infoSectionData.filter(i => !i.isThroughInfoDropdown);
         this.labelInfoErrorMsg = "";
         var infoNames = [];
         var newInfoObject = {};
@@ -1616,7 +1614,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     newInfoObject = { "InfoKey": this.NewInfoKey, "InfoValue": this.NewInfoKeyValue, "InfoValueType": this.NewInfoKeyValueType, "InfoValueOptions": this.NewInfoKeyValueOptions };
                 }
 
-                this.infoSectionData.push({...newInfoObject, isThroughInfoDropdown: true });
+                this.infoSectionData.push({ ...newInfoObject, isThroughInfoDropdown: true });
             }
         }
 
@@ -1625,8 +1623,8 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         //         this.labelInfoErrorMsg = "Error: Please provide info key value";
         //     }
         // })
-        if (this.infoSectionDataSecondary.length > 0 ) {
-            this.infoSectionDataSecondary.forEach(item =>{
+        if (this.infoSectionDataSecondary.length > 0) {
+            this.infoSectionDataSecondary.forEach(item => {
 
                 if (item.SelectedInfoValueType == ValueType.FreeText) {
                     selectedInfoObject = {
@@ -1671,7 +1669,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 else {
                     selectedInfoObject = { "InfoKey": item.SelectedInfoKey, "InfoValue": item.SelectedInfoKeyValue, "InfoValueType": item.SelectedInfoValueType, "InfoValueOptions": item.SelectedInfoKeyValueOptions };
                 }
-                this.infoSectionData.push({...selectedInfoObject, isThroughInfoDropdown: true});
+                this.infoSectionData.push({ ...selectedInfoObject, isThroughInfoDropdown: true });
             })
         }
 
