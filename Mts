@@ -76,11 +76,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     showResults: boolean = false;
     resultStatus: string = '';
     defaultLabelJSON: any = {
+        "dockerProperties": {},
         "schema-in": {},
         "schema-out": {},
-        "info": {},
-        "timeout": 30,
-        "nvidia": false
+        "info": {}
     };
     machineLoaded: boolean = false;
 
@@ -451,10 +450,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
     //Static Info Section
     schemStaticInfoErrorMsg: string = '';
-
-
     IsLabelCreatorEnabled: boolean = false;
-
     IsLoadComplete = true;
 
     InvalidKeyWarningText = 'key should contain alphanumeric, underscore and dash(a-z,A - Z,0 - 9,-_) Example: Dicom-study1';
@@ -472,7 +468,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             name: 'Base OS',
             enable: true,
             options: [{ text: 'Linux', value: 'Linux' }, { text: 'Windows', value: 'Windows' }],
-            disableControldId: 'gpu',
+            disableControldId: 'nvidia',
             disableControlValue: 'Windows',
             selectedValue: '',
             defaultValue: null,
@@ -497,7 +493,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             position: 'left'
         },
         {
-            id: 'gpu',
+            id: 'nvidia',
             type: 'radio',
             name: 'NVIDA SDK (GPU)',
             enable: true,
@@ -604,6 +600,10 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     machineVersion = null;
 
     machineDockerProperties: any = this.DockerProperties.map(i => ({ title: i.name, value: i.selectedValue }));
+
+    evalErrorMessage: string = '';
+    schemaOutForOverview = [];
+
 
     constructor(private eleRef: ElementRef, private httpc: HttpClient, public dialog: MatDialog,
         private route: ActivatedRoute, public router: Router, public snackBar: MatSnackBar, private _ngZone: NgZone, private change: ChangeDetectorRef, private matList: MatGridListModule, public errorService: ErrorSnackBarService) {
@@ -728,7 +728,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             (returnData: any) => {
                 Object.assign(this.MachineData, returnData.machine);
                 Object.assign(this.ProductData, returnData.product);
-                this.IsLabelCreatorEnabled = returnData.IsLabelCreatorEnabled;
                 if (returnData.machineVersion) Object.assign(this.DeployedMachine, returnData.machineVersion);
 
                 if (returnData.machineVersion) Object.assign(this.DeployedMachine, returnData.machineVersion);
@@ -785,7 +784,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                                 let keyName = k + "/" + currentStudy.ChildSeries[loop].key;
                                 this.selectedInputItems[keyName] = { Name: keyName, SelectedValue: '' };
                             }
-                            console.log(this.selectedInputItems);
                             return;
                         }
 
@@ -823,7 +821,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
                     //loop through all input keys and init the selected items array with default values in case there are no changes
                     Object.keys(this.MachineData.Label['schema-in']).forEach(k => {
-                        console.log(this.MachineData.Label['schema-in'][k]);
                         var selectedValue = '';
 
                         //if it's a dicomstudy type, get it's children
@@ -833,7 +830,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                                 let keyName = k + "/" + currentStudy.ChildSeries[loop].key;
                                 this.selectedInputItems[keyName] = { Name: keyName, SelectedValue: '' };
                             }
-                            console.log(this.selectedInputItems);
                             return;
                         }
 
@@ -855,6 +851,16 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                     this.isMachineRunning = true;
                     this.EvalMessage = "Machine is all ready running, checking for status from job queue";
                     interval(5000).pipe(takeWhile(val => this.isMachineRunning == true)).subscribe(() => this.CheckStatus());
+                }
+                if (this.MachineData && this.MachineData.Label && this.MachineData.Label["dockerProperties"] && this.MachineData.Label["dockerProperties"]["gpu"]) {
+                    this.MachineData.Label["dockerProperties"]["nvidia"] = this.MachineData.Label["dockerProperties"]["gpu"];
+                    delete this.MachineData.Label["dockerProperties"]["gpu"];
+                }
+                if (this.MachineData && this.MachineData.Label && this.MachineData.Label["timeout"]) {
+                    delete this.MachineData.Label["timeout"];
+                }
+                if (this.MachineData && this.MachineData.Label && this.MachineData.Label["nvidia"]) {
+                    delete this.MachineData.Label["nvidia"];
                 }
 
                 this.machineLoaded = true;
@@ -878,9 +884,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     GetPushCommands() {
         this.httpc.get("/api/machines/getdockerpushcommands").subscribe(
             (returnData: any) => {
-                console.log(returnData);
 
-                console.log(atob(returnData[0].AuthorizationToken));
 
                 var decodedString = atob(returnData[0].AuthorizationToken);
                 var splitString = decodedString.split(':', 2);
@@ -954,17 +958,15 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
     SelectFiles(key: string, value: string, index: number) {
         let dialogConfig = new MatDialogConfig();
-        dialogConfig.data = { ProductTitle: this.ProductData.ProductName, InputType: value };
+        dialogConfig.data = { ProductTitle: this.ProductData.ProductName, InputType: value, isSingleSelection: true  };
         dialogConfig.minWidth = "70vw";
         dialogConfig.minHeight = "70vh";
 
         let dialogRef = this.dialog.open(ShowFileChooserDialogComponent, dialogConfig);
         dialogRef.afterClosed().subscribe(diagResult => {
             if (diagResult && diagResult.selectedKey) {
-                console.log(diagResult.selectedKey);
 
                 this.selectedInputItems[key] = { Name: key, SelectedValue: diagResult.selectedKey };
-                console.log(this.selectedInputItems);
             }
         });
     }
@@ -975,8 +977,20 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         this.selectedInputItems[key] = { Name: key, SelectedValue: value };
     }
     Evaluate() {
+        this.evalErrorMessage = '';
+
         if (this.MachineData.Label == null)
             return;
+
+        if (Object.keys(this.selectedInputItems).length === 0) {
+            this.evalErrorMessage = "Please fill label creator fields";
+            return;
+        }
+
+        if (Object.keys(this.selectedInputItems).length !== Object.keys(this.selectedInputItems).filter(s => !!this.selectedInputItems[s].SelectedValue).length) {
+            this.evalErrorMessage = 'All inputs should be given a file';
+            return;
+        }
 
         var payload;
 
@@ -994,7 +1008,13 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
                 this.EvalMessage = "Starting Evaluation";
                 interval(5000).pipe(takeWhile(val => this.isMachineRunning == true)).subscribe(() => this.CheckStatus());
             },
-            error => { this.errorService.openSnackBar("An error has occurred on the server"); });
+            error => {
+                if (error.status === 404) {
+                    this.evalErrorMessage = "No Docker Image Found, Please upload to portal";
+                } else {
+                    this.errorService.openSnackBar("An error has occurred on the server");
+                }
+            });
 
     }
     CheckStatus() {
@@ -1033,7 +1053,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         let dialogRef = this.dialog.open(ResultsViewerComponent, dialogConfig);
         dialogRef.afterClosed().subscribe(diagResult => {
-            console.log(diagResult);
         });
     }
 
@@ -1091,6 +1110,32 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
 
         return 'UNKNOWN';
     }
+
+    getPathForInput(key: string, value: any, parentKey: any) {
+        if (!key || !value || !value.type) return '';
+        let prefix = '/envoy/input/';
+        if (parentKey) {
+            prefix += parentKey + '/';
+        }
+        let val = prefix + key;
+        if (value.type.toLowerCase().indexOf('series') != -1 || value.type.toLowerCase().indexOf('study') != -1) {
+            val += '/';
+        }
+        return val;
+    }
+    getPathForOutput(key: string, value: any, parentKey: any) {
+        if (!key || !value) return '';
+        let prefix = '/envoy/output/';
+        if (parentKey) {
+            prefix += parentKey + '/';
+        }
+        let val = prefix + key;
+        if (value.toLowerCase().indexOf('series') != -1 || value.toLowerCase().indexOf('study') != -1) {
+            val += '/';
+        }
+        return val;
+    }
+
     showButtonForProperty(value: any) {
         var propertyType = this.getPropertyType(value);
 
@@ -1100,7 +1145,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     }
 
     logmessage(message: any) {
-        console.log(message);
     }
 
     //Updating the Selected Index
@@ -1291,7 +1335,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         let defaultSchema = {}
         this.DockerProperties.forEach(p => {
             defaultSchema[p.id] = p.defaultValue == null ? '' : p.defaultValue;
-            if (p.id === 'gpu') {
+            if (p.id === 'nvidia') {
                 defaultSchema[p.id] = false;
             }
         })
@@ -1618,11 +1662,11 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             }
         }
 
-        // this.infoSectionDataSecondary.forEach(item => {
-        //     if (item.SelectedInfoKey != "" && item.SelectedInfoKeyValue == "" && item.SelectedInfoValueType != ValueType.Slider && item.SelectedInfoValueType != ValueType.BinarySelector && item.SelectedInfoValueType != ValueType.MinMaxSlider && item.SelectedInfoValueType != ValueType.Select && item.SelectedInfoValueType != ValueType.MultiSelect) {
-        //         this.labelInfoErrorMsg = "Error: Please provide info key value";
-        //     }
-        // })
+         this.infoSectionDataSecondary.forEach(item => {
+             if (item.SelectedInfoKey != "" && item.SelectedInfoKeyValue == "" && item.SelectedInfoValueType != ValueType.Slider && item.SelectedInfoValueType != ValueType.BinarySelector && item.SelectedInfoValueType != ValueType.MinMaxSlider && item.SelectedInfoValueType != ValueType.Select && item.SelectedInfoValueType != ValueType.MultiSelect) {
+                 this.labelInfoErrorMsg = "Error: Please provide info key value";
+             }
+         })
         if (this.infoSectionDataSecondary.length > 0) {
             this.infoSectionDataSecondary.forEach(item => {
 
@@ -2039,7 +2083,7 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
     BindDockerPropertiesData() {
         let dockerPropertiesData = this.MachineData.Label ? (this.MachineData.Label["dockerProperties"] || {}) : {};
         if (Object.keys(dockerPropertiesData).length > 0) {
-            this.DockerProperties.forEach(pr => {
+            this.DockerProperties.forEach(pr => { 
                 let propKeys = Object.keys(dockerPropertiesData);
                 if (propKeys.indexOf(pr.id) !== -1) {
                     pr.selectedValue = dockerPropertiesData[pr.id];
@@ -2059,10 +2103,11 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         this.schemaInData = this.MachineData.Label["schema-in"];
         this.schemaOutData = this.MachineData.Label["schema-out"];
         //label creator is off, so don't remove default items
-        if (this.IsLabelCreatorEnabled == false)
-            return;
+        //if (this.IsLabelCreatorEnabled == false)
+        //    return;
 
         this.CustomSchemaData();
+        this.schemaOutForOverview = (this.customSchemaOutDicomDict || []).concat(this.customSchemaOutDict || []).concat(this.customSchemaOutFindings || []);
         //if ((Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) || Object.keys(this.schemaInData).length == 0) {
         //    if (Object.keys(this.schemaInData).length == 1 && this.schemaInData["dicom-series-in"] != undefined) {
         //        delete this.MachineData.Label['schema-in']["dicom-series-in"];
@@ -2459,7 +2504,6 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
         }
 
         this.MachineData.Label["schema-in"] = JSON.parse(schemInStr);
-        console.log(JSON.parse(schemInStr));
         this.customSchemaInDict = customInDic;
 
         for (let i = 0; i < this.customSchemaOutDict.length; i++) {
@@ -2497,14 +2541,20 @@ export class MachineComponent implements OnInit, EnvoyComponentCanDeactivate {
             this.schemaOutErrorMsg = "Please enter unique keys in output schema";
             this.schemaOutErrorMsgs.push(this.schemaOutErrorMsg);
         }
-        console.log(JSON.parse(schemaOutStr));
         if (this.schemaOutErrorMsgs.length > 0 || this.schemaInErrorMsgs.length > 0) {
             this.customSchemaInDict = customInDic;
             this.customSchemaOutDict = customOutDic;
             return;
         }
         this.customSchemaOutDict = customOutDic;
-        this.MachineData.Label["schema-out"] = JSON.parse(schemaOutStr);
+        var schemaOutObj = {};
+        var schemaOutRaw = JSON.parse(schemaOutStr);
+        schemaOutKeys.forEach(key => {
+            schemaOutObj[key] = schemaOutRaw[key]
+        })
+        this.MachineData.Label["schema-out"] = schemaOutObj;
+        this.schemaOutForOverview = (this.customSchemaOutDicomDict || []).concat(this.customSchemaOutDict || []).concat(this.customSchemaOutFindings || []);
+
     }
 
     //This method is used to validate the schema  data
